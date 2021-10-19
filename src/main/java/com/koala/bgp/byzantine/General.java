@@ -66,7 +66,7 @@ public class General implements Drawable
 
         // simulate adding block to blockchain, so that nonce can be calculated
         Block messageBlock = new Block(null, msg.getText());
-        //messageBlock.setPreviousHash(blockchain.getLatestBlock().getHash());
+        messageBlock.setPreviousHash(blockchain.getLatestBlock().getHash());
         messageBlock.mineBlock(blockchain.getEncryptionLevel());
         msg.setNonce(messageBlock.getNonce());
 
@@ -77,19 +77,21 @@ public class General implements Drawable
             Messenger messenger = new Messenger(msgForGeneral, general, coords, general.getCoords()); 
             battle.getMessengers().add(messenger); 
             messenger.run();            
-        }       
+        }   
+        
+        resendCounter++;
     }
     public void onMessageRecieved(Messenger msger) throws NoSuchAlgorithmException
     { 
         Message msg = msger.getMessage();
         if (msgIsValid(msg)) 
         {
-            decision = msg.getDecision();
-            blockchain.addBlock(new Block(null, msg.getText()));
-
             // resend message to show its valid
             if (resendCounter < NUM_RESENDS)
                 sendMessage(msg);
+
+            decision = msg.getDecision();
+            blockchain.addBlock(new Block(null, msg.getText()));
 
             // print all generals
             for (General general : battle.getGenerals())
@@ -98,14 +100,8 @@ public class General implements Drawable
             }
         }
         
-        if (++resendCounter >= NUM_RESENDS) 
+        if (resendCounter >= NUM_RESENDS) 
         {
-            ArrayList<Messenger> messengers = new ArrayList<>(battle.getMessengers());
-            for (Messenger m : messengers) {
-                if (!m.isRunning()) {
-                    battle.getMessengers().remove(m);
-                }
-            }
             SimpleLogger.logWarning(getName() + " is out of messengers! Messengers left in battle: " + battle.getMessengers().size());
             if (!voted /*&& battle.getMessengers().size() == 0*/) 
             {
@@ -171,6 +167,6 @@ public class General implements Drawable
         g2D.setPaint(Color.BLUE);
         g2D.fillOval(coords.getX() - sizeX / 2, coords.getY() - sizeY / 2, sizeX, sizeY);
         g2D.setPaint(Color.WHITE);
-        g2D.drawString(getName(), coords.getX() - sizeX / 2, coords.getY() - sizeY);
+        g2D.drawString(getName() + " R: " + resendCounter, coords.getX() - sizeX / 2, coords.getY() - sizeY);
     } 
 }

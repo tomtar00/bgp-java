@@ -14,6 +14,7 @@ public class FrameMain extends JFrame
         this.setSize(sizeX, sizeY);
         this.setLocationRelativeTo(null);
         this.setVisible(true);
+        this.setState(JFrame.NORMAL);
 
         battlePanel = new BattlePanel(battle);
         this.add(battlePanel);

@@ -21,12 +21,16 @@ public class Time
         lastTime = time;
     }
 
-    public static synchronized double getDeltaTime()
+    public static double getDeltaTime()
     {
         return (double) (getFrameTime() * Time.timeScale);
     }
-    public static synchronized double getFrameTime()
+    public static double getFrameTime()
     {
         return Time.frameTime / 1000.0;
+    }
+    public static long getFrameTimeMillis()
+    {
+        return Time.frameTime;
     }
 }

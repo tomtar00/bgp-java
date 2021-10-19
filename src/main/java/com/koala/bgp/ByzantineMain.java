@@ -22,6 +22,10 @@ public class ByzantineMain
     private static FrameMain frame;
     private static Battle battle;
 
+    private static float fpsCounter = 0;
+    public static float fps = 0;
+    private static float timeCounter = 0;
+
     private static Battle createBattle()
     {
         Battle battle = new Battle(NUM_GENERALS, NUM_TRAITORS);
@@ -115,6 +119,22 @@ public class ByzantineMain
 
                 // update and render battle
                 frame.getBattlePanel().repaint();
+
+                if (timeCounter < 1f) {
+                    timeCounter += Time.getDeltaTime();
+                    fpsCounter++;
+                }
+                else {  
+                    timeCounter = 0;
+                    fps = fpsCounter;
+                    fpsCounter = 0;
+                }
+
+                long sleepTime = 17L - Time.getFrameTimeMillis();
+                if (sleepTime < 0) {
+                    sleepTime = 0;
+                }
+                Thread.sleep(sleepTime);
                 
             }
             catch (Exception e)

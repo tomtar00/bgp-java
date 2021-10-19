@@ -13,7 +13,7 @@ import java.awt.Graphics2D;
 
 public class Messenger implements Drawable
 {
-    private final int MSG_INTERRUPT_PRECENT = 20;
+    private final int MSG_INTERRUPT_PRECENT = 15;
 
     private Message message;
     private General recipient;
@@ -66,7 +66,7 @@ public class Messenger implements Drawable
         );
 
         // spies (% for being a spy)
-        randomizeSpy(message);
+        message = randomizeSpy(message);
 
         // in seconds
         Random rand = new Random();
@@ -75,7 +75,7 @@ public class Messenger implements Drawable
         SimpleLogger.print("Message (id: " + message.getId() + ") will be delivered in " + timeToDeliver + " seconds...");
     }
 
-    private void randomizeSpy(Message message) {
+    private Message randomizeSpy(Message message) {
         Random rand = new Random();
         if (rand.nextInt(100) < MSG_INTERRUPT_PRECENT) {
             int nonce = message.getNonce();
@@ -83,6 +83,7 @@ public class Messenger implements Drawable
             message.setNonce(nonce);
             isSpy = true;
         }
+        return message;
     }
 
     private void onMessageDelivered()
