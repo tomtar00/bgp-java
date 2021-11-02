@@ -1,40 +1,42 @@
 package com.koala.bgp.blockchain;
 
-
 import java.security.NoSuchAlgorithmException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 
 import com.koala.bgp.utils.SimpleLogger;
 
-public class Block 
+public class Block<T> 
 {
     private String hash;
     private String previousHash;
-    private String data;
-    // timestamp
+    private T transaction;
+    private long timestamp;
 
     private int nonce;
 
-    public Block(String previousHash, String data) throws NoSuchAlgorithmException 
+    public Block(String previousHash, T transaction) throws NoSuchAlgorithmException 
     {
         this.previousHash = previousHash;
-        this.data = data;
+        this.transaction = transaction;
+        this.timestamp = System.currentTimeMillis();
         this.hash = calculateBlockHash();
     }
-    public Block(String previousHash, String data, int nonce) throws NoSuchAlgorithmException 
+    public Block(String previousHash, T transaction, int nonce) throws NoSuchAlgorithmException 
     {
         this.previousHash = previousHash;
-        this.data = data;
+        this.transaction = transaction;
         this.nonce = nonce;
+        this.timestamp = System.currentTimeMillis();
         this.hash = calculateBlockHash();
     }
-    public Block(Block blockToCopy)
+    public Block(Block<T> blockToCopy)
     {
         this.previousHash = blockToCopy.getPreviousHash();
-        this.data = blockToCopy.getData();
+        this.transaction = blockToCopy.getTransaction();
         this.nonce = blockToCopy.getNonce();
         this.hash = blockToCopy.getHash();
+        // timestamp
     }
 
 
@@ -49,12 +51,16 @@ public class Block
         this.previousHash = hash;
     }
 
-    public String getData() {
-        return this.data;
+    public T getTransaction() {
+        return this.transaction;
     }
 
     public int getNonce() {
         return this.nonce;
+    }
+
+    public long getTimestamp() {
+        return this.timestamp;
     }
 
     public String calculateBlockHash() 
@@ -62,7 +68,8 @@ public class Block
         String dataToHash = 
             previousHash  
           + Integer.toString(nonce) 
-          + data;
+          + (transaction == null ? "" : transaction.toString())
+          + Long.toString(timestamp);
 
         MessageDigest digest = null;
         byte[] bytes = null;
@@ -74,7 +81,9 @@ public class Block
         } 
         catch (Exception ex) 
         {
-            SimpleLogger.print("Error creating hash! " + ex.getMessage());
+            SimpleLogger.print("Error creating hash! ");
+            ex.printStackTrace();
+            SimpleLogger.pressAnyKeyToContinue();
         }
 
         StringBuffer buffer = new StringBuffer();
@@ -93,12 +102,6 @@ public class Block
             nonce++;
             hash = calculateBlockHash();
         }
-
-        SimpleLogger.print("Block mined: " +
-                            "\n\tHash: " + hash + 
-                            "\n\tPreviousHash: " + previousHash +
-                            "\n\tData: " + data + " Nonce: " + nonce + " Difficulty: " + encryptionLevel
-                        );
     }
 
 
@@ -107,7 +110,8 @@ public class Block
         return "{" +
             " hash='" + getHash() + "'" +
             ", previousHash='" + getPreviousHash() + "'" +
-            ", data='" + getData() + "'" +
+            ", data='" + getTransaction() + "'" +
+            ", timestamp='" + getTimestamp() + "'" +
             ", nonce='" + getNonce() + "'" +
             "}";
     }

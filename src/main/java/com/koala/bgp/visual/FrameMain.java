@@ -1,14 +1,15 @@
 package com.koala.bgp.visual;
 
-import javax.swing.JFrame;
+import java.awt.Container;
 
-import com.koala.bgp.byzantine.*;
+import javax.swing.*;
 
 public class FrameMain extends JFrame 
 {
     private BattlePanel battlePanel;
+    private DebugPanel debugPanel;
 
-    public FrameMain(int sizeX, int sizeY, Battle battle) 
+    public FrameMain(int sizeX, int sizeY) 
     {
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setSize(sizeX, sizeY);
@@ -16,13 +17,35 @@ public class FrameMain extends JFrame
         this.setVisible(true);
         this.setState(JFrame.NORMAL);
 
-        battlePanel = new BattlePanel(battle);
-        this.add(battlePanel);
+        battlePanel = new BattlePanel();
+        debugPanel = new DebugPanel();
+
+        Container contentPanel = this.getContentPane();  
+        GroupLayout layout = new GroupLayout(contentPanel);
+        contentPanel.setLayout(layout);
+
+        layout.setAutoCreateGaps(true);
+
+        layout.setHorizontalGroup(
+            layout.createSequentialGroup()
+                .addComponent(debugPanel)
+                .addComponent(battlePanel)
+        );
+        layout.setVerticalGroup(  
+            layout.createParallelGroup(GroupLayout.Alignment.BASELINE)  
+                .addComponent(debugPanel)  
+                .addComponent(battlePanel)
+        );
+
         this.pack();
+        this.setVisible(true);  
     }
 
 
     public BattlePanel getBattlePanel() {
         return this.battlePanel;
+    }
+    public DebugPanel getDebugPanel() {
+        return this.debugPanel;
     }
 }

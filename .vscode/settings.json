@@ -1,4 +1,5 @@
 {
     "java.dependency.packagePresentation": "hierarchical",
-    "maven.view": "flat"
+    "maven.view": "flat",
+    "java.configuration.updateBuildConfiguration": "interactive"
 }

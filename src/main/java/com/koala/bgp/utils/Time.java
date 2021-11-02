@@ -9,14 +9,14 @@ public class Time
 
     public static void init()
     {
-        lastTime = System.currentTimeMillis();
+        lastTime = System.nanoTime();
         frameTime = 0;
         timeScale = 1;  
     }
 
     public static void record()
     {
-        long time = System.currentTimeMillis();
+        long time = System.nanoTime();
         frameTime = time - lastTime;
         lastTime = time;
     }
@@ -25,11 +25,21 @@ public class Time
     {
         return (double) (getFrameTime() * Time.timeScale);
     }
-    public static double getFrameTime()
+    public static double getDeltaTimeUnscaled()
     {
-        return Time.frameTime / 1000.0;
+        return (double) (getFrameTime());
+    }
+
+
+    private static double getFrameTime()
+    {
+        return Time.frameTime / 1000000000.0;
     }
     public static long getFrameTimeMillis()
+    {
+        return Time.frameTime / 1000000;
+    }
+    public static long getFrameTimeNanos()
     {
         return Time.frameTime;
     }

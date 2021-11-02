@@ -2,32 +2,38 @@ package com.koala.bgp.blockchain;
 
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 
-public class Blockchain 
+public class Blockchain<T>
 {
-    private List<Block> blocks; 
+    private List<Block<T>> blocks; 
+    private BlockingQueue<T> pendingTransactions;
     private int encryptionLevel;
 
     public Blockchain(int encryptionLevel) throws NoSuchAlgorithmException {
-        this.blocks = new ArrayList<>();
+        this.blocks = Collections.synchronizedList(new ArrayList<>());
+        this.pendingTransactions = new ArrayBlockingQueue<T>(1024);
         this.encryptionLevel = encryptionLevel;
 
         blocks.add(createGenesicBlock());
     }
-    public Blockchain(Blockchain blockchainToCopy) throws NoSuchAlgorithmException{
+    public Blockchain(Blockchain<T> blockchainToCopy) throws NoSuchAlgorithmException{
         this.blocks = new ArrayList<>(blockchainToCopy.getBlocks());
+        this.pendingTransactions = new ArrayBlockingQueue<T>(1024, false, blockchainToCopy.getPendingTransactions());
         this.encryptionLevel = blockchainToCopy.getEncryptionLevel();
-
-        blocks.add(createGenesicBlock());
     }
 
     public int getEncryptionLevel() {
         return this.encryptionLevel;
     }
-    public List<Block> getBlocks() {
+    public List<Block<T>> getBlocks() {
         return this.blocks;
     }
-    public Block getLatestBlock()
+    public BlockingQueue<T> getPendingTransactions() {
+        return this.pendingTransactions;
+    }
+    public Block<T> getLatestBlock()
     {
         if (blocks.size() >= 1)
             return blocks.get(blocks.size() - 1);
@@ -35,23 +41,26 @@ public class Blockchain
     }
 
 
-    private Block createGenesicBlock() throws NoSuchAlgorithmException {
-        return new Block("0", "---");
+    private Block<T> createGenesicBlock() throws NoSuchAlgorithmException {
+        return new Block<T>("0", null);
     }
-    public void addBlock(Block newBlock) throws NoSuchAlgorithmException
-    {
-        newBlock.setPreviousHash(getLatestBlock().getHash());
-        newBlock.mineBlock(this.encryptionLevel);
-        blocks.add(newBlock);   
+    public void minePendingTransactions() throws NoSuchAlgorithmException {
+        while (pendingTransactions.size() > 0) {
+            Block<T> newBlock = new Block<T>(getLatestBlock().getHash(), pendingTransactions.remove());
+            newBlock.mineBlock(this.encryptionLevel);
+            blocks.add(newBlock);
+        }
     }
-
+    public void createTransaction(T transaction) {
+        pendingTransactions.add(transaction);
+    }
 
     public boolean isChainValid() throws NoSuchAlgorithmException 
     {
         for (int i = 1; i < blocks.size(); i++) 
         {
-            Block currentBlock = blocks.get(i);
-            Block previousBlock = blocks.get(i - 1);
+            Block<T> currentBlock = blocks.get(i);
+            Block<T> previousBlock = blocks.get(i - 1);
 
             if (!currentBlock.getHash().equals(currentBlock.calculateBlockHash()))
             {
@@ -69,8 +78,9 @@ public class Blockchain
 
     @Override
     public String toString() {
-        String result = "\t/--------\n";
-        for (Block block : blocks)
+        String result = "\t/-------- (" + blocks.size() + " blocks)\n";
+        ArrayList<Block<T>> currenBlocks = new ArrayList<>(blocks);
+        for (Block<T> block : currenBlocks)
         {
             result += "\tBlock: " + block.toString() + "\n";
         }

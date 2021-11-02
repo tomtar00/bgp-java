@@ -1,40 +1,45 @@
 package com.koala.bgp.byzantine;
 
-public class Message
+import com.koala.bgp.blockchain.BlockchainNode;
+import com.koala.bgp.blockchain.Transaction;
+
+public class Message extends Transaction<Message>
 {
-    private String text;
     private Decision decision;
-    private int nonce;
 
-    private long id;
-    private static long id_counter = 0;
-
-    public Message(String text, Decision decision) {
-        this.text = text;
+    public Message(Decision decision, BlockchainNode<Message> sender, BlockchainNode<Message> recipient) {
+        super(sender, recipient);
         this.decision = decision;
-        id = id_counter++;
     }
     public Message(Message msgToCopy) {
-        this.text = msgToCopy.getText();
+        super(msgToCopy.getSender(), msgToCopy.getRecipient());
         this.decision = msgToCopy.getDecision();
         this.nonce = msgToCopy.getNonce();
-        id = id_counter++;
+        this.id = msgToCopy.getId();
     }
 
-    public int getNonce() {
-        return this.nonce;
-    }
-    public String getText() {
-        return this.text;
-    }
+    
     public Decision getDecision() {
         return this.decision;
     }
-    public long getId() {
-        return this.id;
+
+    public boolean equals(Message message) {
+        return  this.decision.equals(message.getDecision()) &&
+                this.nonce == message.getNonce();
     }
 
-    public void setNonce(int nonce) {
-        this.nonce = nonce;
+    @Override
+    public BlockchainNode<Message> getSender() {
+        return this.sender;
     }
+    @Override
+    public BlockchainNode<Message> getRecipient() {
+        return this.recipient;
+    }
+
+    @Override
+    public String toString() {
+        return "{ decision='" + getDecision() + "' }";
+    }
+
 }

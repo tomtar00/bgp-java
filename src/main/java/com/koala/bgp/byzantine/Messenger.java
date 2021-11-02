@@ -6,6 +6,7 @@ import java.util.Random;
 import com.koala.bgp.utils.Mathf;
 import com.koala.bgp.utils.SimpleLogger;
 import com.koala.bgp.utils.Time;
+import com.koala.bgp.utils.Vector2;
 import com.koala.bgp.visual.Drawable;
 
 import java.awt.Color;
@@ -13,47 +14,45 @@ import java.awt.Graphics2D;
 
 public class Messenger implements Drawable
 {
-    private final int MSG_INTERRUPT_PRECENT = 15;
+    private final static int MSG_INTERRUPT_PRECENT = 0;
+    private final static int RANDOM_CIRCLE_OFFSET_RADIUS = 15;
 
     private Message message;
-    private General recipient;
+    private Vector2 startCoords;
+    private Vector2 endCoords;
 
-    private Coords startCoords;
-    private Coords endCoords;
-
-    private boolean isSpy = false;
+    private boolean spy = false;
+    private boolean running = false;
 
     // ====
 
     private float timeCounter = 0;
     private float timeToDeliver = 0;
-    private long msgSendRecord = 0;
-    private boolean running = false;
+    private long msgSendRecord = 0; 
 
-    public Messenger(Message message, General recipient, Coords startCoords, Coords endCoords) {
+    public Messenger(Message message) {
         this.message = message;
-        this.recipient = recipient;
-        this.startCoords = startCoords;
-        this.endCoords = endCoords;
+        Vector2 random_offset = Mathf.randomOneUnitCircle().multiply(RANDOM_CIRCLE_OFFSET_RADIUS);
+        General sender = (General)message.getSender();
+        General recipient = (General)message.getRecipient();
+        this.startCoords = sender.getCoords().add(random_offset);
+        this.endCoords = recipient.getCoords().add(random_offset);
     }
 
     public Message getMessage() {
         return this.message;
     }
-    public General getRecipient() {
-        return this.recipient;
-    }
-    public Coords getStartCoords() {
+    public Vector2 getStartCoords() {
         return this.startCoords;
     }
-    public Coords getEndCoords() {
+    public Vector2 getEndCoords() {
         return this.endCoords;
     }
     public boolean isRunning() {
         return this.running;
     }
     public boolean isSpy() {
-        return isSpy;
+        return spy;
     }
 
     public void run() 
@@ -66,23 +65,24 @@ public class Messenger implements Drawable
         );
 
         // spies (% for being a spy)
-        message = randomizeSpy(message);
+        Random rand = new Random();
+        if (rand.nextInt(100) < MSG_INTERRUPT_PRECENT) {
+            message = randomizeSpy(message);
+        }
 
         // in seconds
-        Random rand = new Random();
         timeToDeliver = (float)dst / 100f + rand.nextFloat() * 4;
         msgSendRecord = System.currentTimeMillis();
         SimpleLogger.print("Message (id: " + message.getId() + ") will be delivered in " + timeToDeliver + " seconds...");
     }
 
     private Message randomizeSpy(Message message) {
-        Random rand = new Random();
-        if (rand.nextInt(100) < MSG_INTERRUPT_PRECENT) {
-            int nonce = message.getNonce();
-            message = new Message("Retreat", Decision.RETREAT);           
-            message.setNonce(nonce);
-            isSpy = true;
-        }
+        
+        int nonce = message.getNonce();
+        message = new Message(Decision.randomDecision(message.getDecision()), message.getSender(), message.getRecipient());           
+        message.setNonce(nonce);
+        spy = true;
+        
         return message;
     }
 
@@ -93,9 +93,11 @@ public class Messenger implements Drawable
              (msgDeliveredRecord - msgSendRecord) / 1000f + " seconds");
 
         try {
+            General recipient = (General)message.getRecipient();
             recipient.onMessageRecieved(this);
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
+            SimpleLogger.pressAnyKeyToContinue();
         }
     }
  
@@ -105,7 +107,9 @@ public class Messenger implements Drawable
         {
             timeCounter += Time.getDeltaTime();
             if (timeCounter > timeToDeliver) {
-                onMessageDelivered();
+                new Thread(() -> {
+                    onMessageDelivered();
+                }).start();
                 running = false;
                 timeCounter = 0;
             }      
@@ -116,14 +120,14 @@ public class Messenger implements Drawable
     public void draw(Graphics2D g2D) {
         
         float progress = timeCounter / timeToDeliver;
-        int[] start = new int[] { startCoords.getX(), startCoords.getY() };
-        int[] end = new int[] { endCoords.getX(), endCoords.getY() };
-        int[] resultCoords = Mathf.Lerp(start, end, progress);
+        Vector2 start = new Vector2( startCoords.getX(), startCoords.getY() );
+        Vector2 end = new Vector2( endCoords.getX(), endCoords.getY() );
+        Vector2 resultCoords = Mathf.lerp(start, end, progress);
         Color color = Color.GRAY;
-        if (isSpy)
+        if (spy)
             color = Color.RED;
         g2D.setPaint(color);
-        g2D.drawLine(startCoords.getX(), startCoords.getY(), resultCoords[0], resultCoords[1]);
+        g2D.drawLine((int)startCoords.getX(), (int)startCoords.getY(), (int)resultCoords.getX(), (int)resultCoords.getY());
         
     }
 }
