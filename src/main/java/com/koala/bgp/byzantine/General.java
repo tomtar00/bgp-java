@@ -88,7 +88,7 @@ public class General extends BlockchainNode<Message> implements Drawable
                 Decision newDecision = traitor ? Decision.randomDecision(msg.getDecision()) : msg.getDecision();
                                                 // ... to everyone except the sender
                 sendMessage(newDecision, (General)msg.getSender());
-                //sendMessage(msg.getDecision(), null);
+                //sendMessage(newDecision, null);
                 resendCounter++;
             }
         }
