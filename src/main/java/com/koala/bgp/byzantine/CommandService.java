@@ -1,9 +1,11 @@
 package com.koala.bgp.byzantine;
 
+import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import com.koala.bgp.blockchain.BlockchainNode;
 import com.koala.bgp.utils.SimpleLogger;
 
 public class CommandService
@@ -22,21 +24,10 @@ public class CommandService
     }
 
 
-    public static List<General> getGenerals() {
-        return generals;
-    }
-
-    public static List<Messenger> getMessengers() {
-        return messengers;
-    }
-
-    public static boolean isRunning() {
-        return isRunning;
-    }
-
-    public static void setIsRunning(boolean running) {
-        isRunning = running;
-    }
+    public static List<General> getGenerals() { return generals; }
+    public static List<Messenger> getMessengers() { return messengers; }
+    public static boolean isRunning() { return isRunning; }
+    public static void setIsRunning(boolean running) { isRunning = running; }
 
     public static synchronized void voteToEndSync() {
         if (++votes >= generals.size() && !ending) {
@@ -55,7 +46,6 @@ public class CommandService
             ending = true;
         }
     }
-
     private static synchronized boolean allGeneralsAddedAllBlocks() {
         for (var g : getGenerals()) {
             if (g.isMiningPendingTransactions()) {
@@ -63,5 +53,13 @@ public class CommandService
             }
         }
         return true;
+    }
+    public static synchronized BlockchainNode getNode(PublicKey pKey) {
+        for (BlockchainNode g : generals) {
+            if (pKey.equals(g.getKeyPair().getPublic())) {
+                return g;
+            }
+        }
+        return null;
     }
 }

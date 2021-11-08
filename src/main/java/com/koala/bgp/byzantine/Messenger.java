@@ -14,10 +14,11 @@ import java.awt.Graphics2D;
 
 public class Messenger implements Drawable
 {
-    private final static int MSG_INTERRUPT_PRECENT = 0;
+    private final static int MSG_INTERRUPT_PRECENT = 10;
     private final static int RANDOM_CIRCLE_OFFSET_RADIUS = 15;
 
     private Message message;
+    private General recipient;
     private Vector2 startCoords;
     private Vector2 endCoords;
 
@@ -28,13 +29,11 @@ public class Messenger implements Drawable
 
     private float timeCounter = 0;
     private float timeToDeliver = 0;
-    private long msgSendRecord = 0; 
 
-    public Messenger(Message message) {
+    public Messenger(Message message, General sender, General recipient) {
         this.message = message;
         Vector2 random_offset = Mathf.randomOneUnitCircle().multiply(RANDOM_CIRCLE_OFFSET_RADIUS);
-        General sender = (General)message.getSender();
-        General recipient = (General)message.getRecipient();
+        this.recipient = recipient;
         this.startCoords = sender.getCoords().add(random_offset);
         this.endCoords = recipient.getCoords().add(random_offset);
     }
@@ -72,29 +71,28 @@ public class Messenger implements Drawable
 
         // in seconds
         timeToDeliver = (float)dst / 100f + rand.nextFloat() * 4;
-        msgSendRecord = System.currentTimeMillis();
-        SimpleLogger.print("Message (id: " + message.getId() + ") will be delivered in " + timeToDeliver + " seconds...");
     }
 
     private Message randomizeSpy(Message message) {
-        
-        int nonce = message.getNonce();
-        message = new Message(Decision.randomDecision(message.getDecision()), message.getSender(), message.getRecipient());           
-        message.setNonce(nonce);
+        message = new Message(Decision.randomDecision(message.getDecision()),
+                              message.getSenderPublicKey(), 
+                              message.getRecipientPublicKey()
+                            );           
         spy = true;
-        
         return message;
     }
 
     private void onMessageDelivered()
     {
-        long msgDeliveredRecord = System.currentTimeMillis();
-        SimpleLogger.print("Message (id: " + message.getId() + ") delievered. Recorded time: " +
-             (msgDeliveredRecord - msgSendRecord) / 1000f + " seconds");
-
         try {
-            General recipient = (General)message.getRecipient();
-            recipient.onMessageRecieved(this);
+            if (recipient != null) {
+                recipient.onTransactionRecieved(message);
+
+                // remove an useless messenger
+                CommandService.getMessengers().remove(this);
+            }
+            else
+                SimpleLogger.print("No general found with given public key");
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
             SimpleLogger.pressAnyKeyToContinue();
@@ -128,6 +126,5 @@ public class Messenger implements Drawable
             color = Color.RED;
         g2D.setPaint(color);
         g2D.drawLine((int)startCoords.getX(), (int)startCoords.getY(), (int)resultCoords.getX(), (int)resultCoords.getY());
-        
     }
 }

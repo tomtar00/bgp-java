@@ -1,74 +1,51 @@
 package com.koala.bgp.blockchain;
 
 import java.security.NoSuchAlgorithmException;
+import java.util.List;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 
 import com.koala.bgp.utils.SimpleLogger;
 
-public class Block<T> 
+public class Block
 {
+    // HEADER
     private String hash;
     private String previousHash;
-    private T transaction;
     private long timestamp;
-
     private int nonce;
 
-    public Block(String previousHash, T transaction) throws NoSuchAlgorithmException 
+    private List<Transaction<?>> transactions;
+    
+
+    public Block(String previousHash, List<Transaction<?>> transactions) throws NoSuchAlgorithmException 
     {
         this.previousHash = previousHash;
-        this.transaction = transaction;
+        this.transactions = transactions;
         this.timestamp = System.currentTimeMillis();
         this.hash = calculateBlockHash();
     }
-    public Block(String previousHash, T transaction, int nonce) throws NoSuchAlgorithmException 
+    public Block(String previousHash, List<Transaction<?>> transactions, int nonce) throws NoSuchAlgorithmException 
     {
         this.previousHash = previousHash;
-        this.transaction = transaction;
+        this.transactions = transactions;
         this.nonce = nonce;
         this.timestamp = System.currentTimeMillis();
         this.hash = calculateBlockHash();
     }
-    public Block(Block<T> blockToCopy)
-    {
-        this.previousHash = blockToCopy.getPreviousHash();
-        this.transaction = blockToCopy.getTransaction();
-        this.nonce = blockToCopy.getNonce();
-        this.hash = blockToCopy.getHash();
-        // timestamp
-    }
 
-
-    public String getHash() {
-        return this.hash;
-    }
-
-    public String getPreviousHash() {
-        return this.previousHash;
-    }
-    public void setPreviousHash(String hash) {
-        this.previousHash = hash;
-    }
-
-    public T getTransaction() {
-        return this.transaction;
-    }
-
-    public int getNonce() {
-        return this.nonce;
-    }
-
-    public long getTimestamp() {
-        return this.timestamp;
-    }
+    public String getHash() { return this.hash; }
+    public String getPreviousHash() { return this.previousHash; }
+    public List<Transaction<?>> getTransactions() { return this.transactions; }
+    public int getNonce() { return this.nonce; }
+    public long getTimestamp() { return this.timestamp; }
 
     public String calculateBlockHash() 
     {
         String dataToHash = 
             previousHash  
           + Integer.toString(nonce) 
-          + (transaction == null ? "" : transaction.toString())
+          + (transactions == null ? "" : transactions.toString())
           + Long.toString(timestamp);
 
         MessageDigest digest = null;
@@ -93,7 +70,6 @@ public class Block<T>
         }
         return buffer.toString();
     }
-
     public void mineBlock(int encryptionLevel) throws NoSuchAlgorithmException 
     {
         String prefixString = new String(new char[encryptionLevel]).replace('\0', '0');
@@ -104,16 +80,15 @@ public class Block<T>
         }
     }
 
-
     @Override
     public String toString() {
         return "{" +
             " hash='" + getHash() + "'" +
             ", previousHash='" + getPreviousHash() + "'" +
-            ", data='" + getTransaction() + "'" +
             ", timestamp='" + getTimestamp() + "'" +
             ", nonce='" + getNonce() + "'" +
-            "}";
+            (getTransactions().size() != 0 ? ", \n\t(" + getTransactions().size() + " transactions) data=\n\t\t" + getTransactions() : "") +
+            "\n\t}";
     }
 
 }

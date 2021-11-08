@@ -2,6 +2,9 @@ package com.koala.bgp.byzantine;
 
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
 
 import com.koala.bgp.ByzantineMain;
 import com.koala.bgp.blockchain.*;
@@ -10,16 +13,25 @@ import com.koala.bgp.visual.Drawable;
 
 import java.awt.*;
 
-public class General extends BlockchainNode<Message> implements Drawable
+public class General extends BlockchainNode implements Drawable
 {    
     private String name;
     private Decision decision;
     private Vector2 coords;
 
     private boolean traitor = false;
-
-    private int resendCounter = 0;
     private boolean voted = false;
+
+    private Map<Decision, Boolean> opinions;
+
+    // ====
+    
+    private final double NO_MESSAGE_INTERVAL = 15.0;
+    private double endRoundTimer = 0.0;
+    private final double CREATE_BLOCK_INTERVAL = 5.0;
+    private double createBlockTimer;
+
+    private int currentRound = 1;
 
     public General(String name, Vector2 coords, boolean traitor) throws NoSuchAlgorithmException {
         super(ByzantineMain.getEncLevel());
@@ -27,8 +39,13 @@ public class General extends BlockchainNode<Message> implements Drawable
         this.coords = coords;
         this.traitor = traitor;
 
+        opinions = new HashMap<Decision, Boolean>();
+        for (int i = 0; i < Decision.values().length; i++) {
+            Random rand = new Random();
+            opinions.put(Decision.values()[i], rand.nextInt(100) < 50);
+        }
+
         this.decision = Decision.randomDecision();
-        blockchain.getPendingTransactions().add(new Message(decision, this, this));
     }
     
     public String getName() {
@@ -44,115 +61,66 @@ public class General extends BlockchainNode<Message> implements Drawable
         return this.traitor;
     }
 
-    public synchronized ArrayList<General> getOtherGererals(General excGeneral)
+    @Override
+    protected synchronized ArrayList<BlockchainNode> getOtherNodes()
     {
-        ArrayList<General> otherGenerals = new ArrayList<General>();
-        for (General g : CommandService.getGenerals())
-            if (g != excGeneral && g != this)
+        ArrayList<BlockchainNode> otherGenerals = new ArrayList<>();
+        for (BlockchainNode g : CommandService.getGenerals())
+            if (g != this)
                 otherGenerals.add(g);
 
         return otherGenerals;
     }
-    public synchronized void sendMessage(Decision decision, General excGeneral) throws NoSuchAlgorithmException
-    {
-        SimpleLogger.print("-------- " + getName() + " sends message(s) --------"); 
-
-        // simulate adding block to blockchain, so that nonce can be calculated
-        // Block<Message> messageBlock = new Block<Message>(null, msg);
-        // messageBlock.setPreviousHash(blockchain.getLatestBlock().getHash());
-        // mining = true;
-        // messageBlock.mineBlock(blockchain.getEncryptionLevel());
-        // mining = false;
-
-        // msg.setNonce(messageBlock.getNonce());
-
-        // send message to every other general except one general who sended
-        for (General general : getOtherGererals(excGeneral))
-        {  
-            Message msgForGeneral = new Message(decision, this, general);
-            Messenger messenger = new Messenger(msgForGeneral); 
-            CommandService.getMessengers().add(messenger); 
-            messenger.run();            
-        }   
+    @Override
+    public synchronized void sendTransaction(Transaction<?> msg, BlockchainNode recipient) {
+        Messenger messenger = new Messenger((Message)msg, this, (General)recipient); 
+        CommandService.getMessengers().add(messenger); 
+        messenger.run();
     }
-    public synchronized void onMessageRecieved(Messenger msger) throws NoSuchAlgorithmException
+    @Override
+    public synchronized void onTransactionRecieved(Transaction<?> msg) throws NoSuchAlgorithmException
     { 
-        Message msg = msger.getMessage();
-        if (msgIsValid(msg)) 
-        {
-            // add new msg to mining queue
-            blockchain.getPendingTransactions().add(msg);
+        if (voted) return;
 
-            // resend message...
-            if (shouldResend()) {
-                Decision newDecision = traitor ? Decision.randomDecision(msg.getDecision()) : msg.getDecision();
-                                                // ... to everyone except the sender
-                sendMessage(newDecision, (General)msg.getSender());
-                //sendMessage(newDecision, null);
-                resendCounter++;
+        if (transactionIsValid(msg) && !blockchain.contains(msg)) 
+        {
+            if (!blockchain.pendingContains(msg)) 
+            {
+                // add new msg to mining queue
+                blockchain.getPendingTransactions().add(msg);
+            
+                resendTransactionToAllGenerals(msg);
             }
-        }
-        
-        // remove an useless messenger
-        CommandService.getMessengers().remove(msger);
+            else {
+                // search for the message...
+                for (Transaction<?> t : blockchain.getPendingTransactions()) {
+                    if (t.equals(msg)) {
+                        // ...and increment number of verifications
+                        // if the number of confirmations will be bigger 50% of NUM_GENERALS
+                        // add it to the blockchain
+                        t.incrementConfirms();
+                        break;
+                    }
+                }
+            }
+        }  
 
-        // vote to end synchronization
-        if (!voted && !shouldResend()) 
-        {
-            SimpleLogger.logWarning(getName() + " voted to end decision phase");
-            CommandService.voteToEndSync();
-            voted = true;
-        }
+        // reset timer
+        endRoundTimer = 0f;
     }
-    private synchronized void processPendingMessages() throws NoSuchAlgorithmException 
+    @Override
+    protected synchronized void processPendingTransactions()
     {
-        blockchain.minePendingTransactions();
-
-        // make decision based on majority of common decisions in blockchain  
-        decision = makeDecision();
-
-        miningPendingTransactions = false;
-    }
-    public synchronized boolean msgIsValid(Message msg) throws NoSuchAlgorithmException
-    {
-        SimpleLogger.print("-------- " + getName() + " verifies message (id: " + msg.getId() + ") --------"); 
-
-        // // simulate adding new block to the blockchain
-        // Block<Message> block = new Block<Message>(null, msg);
-        // Blockchain<Message> bCopy = new Blockchain<Message>(blockchain);
-        // mining = true;
-        // bCopy.addBlock(block);
-        // mining = false;
-        // boolean isValid = block.getNonce() == msg.getNonce();
-        // if (isValid) {
-        //     SimpleLogger.print(getName() + " says, that message (id: " + msg.getId() + ") was valid. (" + block.getNonce() + " == " + msg.getNonce() + ")");
-        // }
-        // else {
-        //     SimpleLogger.print(getName() + " says, that message (id: " + msg.getId() + ") was not valid! (" + block.getNonce() + " != " + msg.getNonce() + ")");
-        // }
-        // return isValid;   
-
-        return isValidTransaction(msg);
-    }
-    private synchronized boolean shouldResend() {
-        return resendCounter < (ByzantineMain.getNumOfGenerals() - 1) * (ByzantineMain.getNumOfTraitors() + 1);
-    }
-    public synchronized Decision makeDecision() {
-        java.util.List<Decision> decisionList = new java.util.ArrayList<>();
-        for (Block<Message> b: blockchain.getBlocks()) {
-            if (b.getTransaction() != null)
-                decisionList.add(b.getTransaction().getDecision());
-        }
-        decision = decisionList.size() == 0 ? getDecision() : Mathf.mostCommon(decisionList);
-        return decision;
-    }
-
-    public void update() {
         if (!miningPendingTransactions && blockchain.getPendingTransactions().size() > 0) {
             miningPendingTransactions = true;
             new Thread(() -> {
                 try {
-                    processPendingMessages();
+
+                    super.processPendingTransactions();
+
+                    // make decision based on majority of common decisions in blockchain  
+                    decision = makeDecision();
+
                 } catch (NoSuchAlgorithmException e) {
                     e.printStackTrace();
                     SimpleLogger.pressAnyKeyToContinue();
@@ -160,12 +128,87 @@ public class General extends BlockchainNode<Message> implements Drawable
             }).start();
         }
     }
+    
+    private synchronized boolean shouldEndRound() {
+        return endRoundTimer > NO_MESSAGE_INTERVAL && !miningPendingTransactions;
+    }
+    public synchronized Decision makeDecision() {
+        java.util.List<Decision> decisionList = new java.util.ArrayList<>();
+        for (Block b : blockchain.getBlocks()) {
+            for (Transaction<?> t : b.getTransactions()) {
+                if (t != null /* && opinions.get(((Message)t).getDecision()) */)
+                    decisionList.add(((Message)t).getDecision());
+            }
+        }
+        decision = decisionList.size() == 0 ? getDecision() : Mathf.mostCommon(decisionList);
+        if (traitor) {
+            decision = Decision.randomDecision(decision);
+        }
+        return decision;
+    }
+    public synchronized void sendMyDecisionToAllGenerals(Decision decision) throws NoSuchAlgorithmException
+    {
+        // send my decision to every other general
+        for (BlockchainNode general : getOtherNodes())
+        {  
+            Message msgForGeneral = new Message(decision, keyPair.getPublic(), general.getKeyPair().getPublic());
+            msgForGeneral.signTransaction(keyPair);
+            for (BlockchainNode recipient : getOtherNodes())
+                sendTransaction(new Message(msgForGeneral), recipient);  
+        }  
+    }
+    public synchronized void resendTransactionToAllGenerals(Transaction<?> transaction) throws NoSuchAlgorithmException
+    {
+        // resend message to every other general
+        for (BlockchainNode general : getOtherNodes())
+        {  
+            Message msg = (Message)transaction;
+            Message copy = new Message(msg);
+            sendTransaction(copy, general);  
+        }   
+    }
+    public void update() {
+        endRoundTimer += Time.getDeltaTime();
+        createBlockTimer += Time.getDeltaTime();
+ 
+        if (!voted) 
+        {
+            // create block
+            if (createBlockTimer > CREATE_BLOCK_INTERVAL) {
+                processPendingTransactions();
+                createBlockTimer = 0;
+            }
+
+            // vote to end synchronization
+            if (shouldEndRound()) 
+            {
+                processPendingTransactions();
+                currentRound++;
+
+                if (currentRound > ByzantineMain.getNumOfTraitors() + 1) {
+                    SimpleLogger.logWarning(getName() + " voted to end decision phase");
+                    CommandService.voteToEndSync(); 
+                    voted = true;
+                }
+                else {
+                    try {
+                        sendMyDecisionToAllGenerals(decision);
+                    } catch (NoSuchAlgorithmException e) {
+                        e.printStackTrace();
+                        SimpleLogger.pressAnyKeyToContinue();
+                    }
+                    endRoundTimer = 0;
+                }
+            }
+        }
+    }
 
     @Override
     public String toString() {
         return "{\n" +
             "   name='" + getName() + "'\n" +
-            "   coords='" + getCoords() + "'\n" +
+            "   mining='" + isMiningPendingTransactions() + "'\n" +
+            "   pending transactions='" + getBlockchain().getPendingTransactions().size() + "'\n" +
             "   blockchain=\n" + getBlockchain() + "\n" +
             "   decision='" + getDecision() + "'\n" +
             "}\n";
@@ -205,7 +248,7 @@ public class General extends BlockchainNode<Message> implements Drawable
 
         // name
         g2D.setPaint(Color.WHITE);
-        g2D.drawString(getName() + " -- R: " + resendCounter, coords.getX() - sizeX / 2, coords.getY() - sizeY);
+        g2D.drawString(getName(), coords.getX() - sizeX / 2, coords.getY() - sizeY);
 
         if (miningPendingTransactions)
             g2D.drawString("Mining..." , coords.getX() - sizeX / 2, coords.getY() + sizeY + 5);

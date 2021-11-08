@@ -51,8 +51,7 @@ public class ByzantineMain
 
                 Boolean isTraitor = randomStack.pop();
                 String entityName = isTraitor ? "Traitor " : "General ";
-                General g = new General(entityName + i, coords, isTraitor);
-                CommandService.getGenerals().add(g);
+                CommandService.getGenerals().add(new General(entityName + i, coords, isTraitor));
             }
             catch (NoSuchAlgorithmException ex)
             {
@@ -69,7 +68,7 @@ public class ByzantineMain
         for (General general : CommandService.getGenerals()) {
             new Thread(() -> {
                 try {
-                    general.sendMessage(general.getDecision(), null);
+                    general.sendMyDecisionToAllGenerals(general.getDecision());
                 } catch (NoSuchAlgorithmException e) {
                     e.printStackTrace();
                     SimpleLogger.pressAnyKeyToContinue();
@@ -81,7 +80,6 @@ public class ByzantineMain
     {
         SimpleLogger.print("---------- SUMMARY -----------");
 
-        int totalBlocksCount = 0;
         for (General general : CommandService.getGenerals()) {
             general.makeDecision();
             try {
@@ -92,17 +90,7 @@ public class ByzantineMain
                 e.printStackTrace();
                 SimpleLogger.pressAnyKeyToContinue();
             }
-            totalBlocksCount += general.getBlockchain().getBlocks().size();
         }
-        SimpleLogger.print("\n");
-
-        int g = NUM_GENERALS;
-        int t = NUM_TRAITORS;                  
-        int blocksCount = (g - 1) + (g - 1) * (g - 2) * (t + 1);
-        // bolcksCount += genesisBlock(=1) + ownDecision(=1)
-        blocksCount += 1 + 1;
-        SimpleLogger.print("EVERY GENERAL SHOULD HAVE " + blocksCount + " BLOCKS");                                  
-        SimpleLogger.print("SUM OF ALL BLOCKS: Predicted - " + blocksCount * NUM_GENERALS + " Actual - " + totalBlocksCount);
         SimpleLogger.print("\n");
 
         int numGeneralsInConsensus = 0;
@@ -175,7 +163,7 @@ public class ByzantineMain
                     // update and render battle
                     frame.getBattlePanel().repaint();
 
-                    // update fps every one second
+                    // update fps every second
                     if (t_fps > 1) {
                         fps = 1.0 / Time.getDeltaTimeUnscaled();
                         t_fps = 0.0;
