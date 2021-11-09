@@ -28,8 +28,6 @@ public class General extends BlockchainNode implements Drawable
     
     private final double NO_MESSAGE_INTERVAL = 15.0;
     private double endRoundTimer = 0.0;
-    private final double CREATE_BLOCK_INTERVAL = 5.0;
-    private double createBlockTimer;
 
     private int currentRound = 1;
 
@@ -82,26 +80,24 @@ public class General extends BlockchainNode implements Drawable
     { 
         if (voted) return;
 
-        if (transactionIsValid(msg) && !blockchain.contains(msg)) 
+        if (transactionIsValid(msg) && blockchain.contains(msg) == null) 
         {
-            if (!blockchain.pendingContains(msg)) 
+            Transaction<?> pendingTransaction = blockchain.pendingContains(msg);
+            if (pendingTransaction == null) 
             {
-                // add new msg to mining queue
-                blockchain.getPendingTransactions().add(msg);
-            
-                resendTransactionToAllGenerals(msg);
+                // add new msg to queue (memPool)
+                blockchain.getPendingTransactions().add(msg);               
             }
-            else {
-                // search for the message...
-                for (Transaction<?> t : blockchain.getPendingTransactions()) {
-                    if (t.equals(msg)) {
-                        // ...and increment number of verifications
-                        // if the number of confirmations will be bigger 50% of NUM_GENERALS
-                        // add it to the blockchain
-                        t.incrementConfirms();
-                        break;
-                    }
-                }
+            else 
+            {
+                // ...and increment number of verifications
+                // if the number of confirmations will be bigger than 50% of NUM_GENERALS
+                // add it to the blockchain
+                pendingTransaction.incrementConfirms();
+            }         
+            
+            if (pendingTransaction == null || msg.getSenderPublicKey().equals(keyPair.getPublic())) {
+                resendTransactionToAllGenerals(msg);
             }
         }  
 
@@ -111,8 +107,8 @@ public class General extends BlockchainNode implements Drawable
     @Override
     protected synchronized void processPendingTransactions()
     {
-        if (!miningPendingTransactions && blockchain.getPendingTransactions().size() > 0) {
-            miningPendingTransactions = true;
+        if (!processingPendingTransactions && blockchain.getPendingTransactions().size() > 0) {
+            processingPendingTransactions = true;
             new Thread(() -> {
                 try {
 
@@ -130,7 +126,7 @@ public class General extends BlockchainNode implements Drawable
     }
     
     private synchronized boolean shouldEndRound() {
-        return endRoundTimer > NO_MESSAGE_INTERVAL && !miningPendingTransactions;
+        return endRoundTimer > NO_MESSAGE_INTERVAL && !processingPendingTransactions;
     }
     public synchronized Decision makeDecision() {
         java.util.List<Decision> decisionList = new java.util.ArrayList<>();
@@ -151,10 +147,14 @@ public class General extends BlockchainNode implements Drawable
         // send my decision to every other general
         for (BlockchainNode general : getOtherNodes())
         {  
-            Message msgForGeneral = new Message(decision, keyPair.getPublic(), general.getKeyPair().getPublic());
+            Message msgForGeneral = new Message(decision, keyPair.getPublic(), general.getKeyPair().getPublic());           
             msgForGeneral.signTransaction(keyPair);
+
             for (BlockchainNode recipient : getOtherNodes())
                 sendTransaction(new Message(msgForGeneral), recipient);  
+
+            msgForGeneral.incrementConfirms();
+            blockchain.getPendingTransactions().add(msgForGeneral);
         }  
     }
     public synchronized void resendTransactionToAllGenerals(Transaction<?> transaction) throws NoSuchAlgorithmException
@@ -169,37 +169,27 @@ public class General extends BlockchainNode implements Drawable
     }
     public void update() {
         endRoundTimer += Time.getDeltaTime();
-        createBlockTimer += Time.getDeltaTime();
  
-        if (!voted) 
-        {
-            // create block
-            if (createBlockTimer > CREATE_BLOCK_INTERVAL) {
-                processPendingTransactions();
-                createBlockTimer = 0;
-            }
+        if (!voted && shouldEndRound()) 
+        {   
+            processPendingTransactions();
+            currentRound++;
 
-            // vote to end synchronization
-            if (shouldEndRound()) 
-            {
-                processPendingTransactions();
-                currentRound++;
-
-                if (currentRound > ByzantineMain.getNumOfTraitors() + 1) {
-                    SimpleLogger.logWarning(getName() + " voted to end decision phase");
-                    CommandService.voteToEndSync(); 
-                    voted = true;
-                }
-                else {
-                    try {
-                        sendMyDecisionToAllGenerals(decision);
-                    } catch (NoSuchAlgorithmException e) {
-                        e.printStackTrace();
-                        SimpleLogger.pressAnyKeyToContinue();
-                    }
-                    endRoundTimer = 0;
-                }
+            if (currentRound > ByzantineMain.getNumOfTraitors() + 1) {
+                SimpleLogger.logWarning(getName() + " voted to end decision phase");
+                CommandService.voteToEndSync(); 
+                voted = true;
             }
+            else {
+                try {
+                    sendMyDecisionToAllGenerals(decision);
+                } catch (NoSuchAlgorithmException e) {
+                    e.printStackTrace();
+                    SimpleLogger.pressAnyKeyToContinue();
+                }
+                endRoundTimer = 0;
+            }
+            
         }
     }
 
@@ -218,21 +208,9 @@ public class General extends BlockchainNode implements Drawable
         int sizeX = 50;
         int sizeY = 50;
         int thickness = 15;
-
-        Color color;
-        if (getDecision() == Decision.ATTACK_AT_DAWN)
-            color = Color.GREEN;
-        else if (getDecision() == Decision.ATTACK_AT_NOON)
-            color = Color.CYAN;
-        else if (getDecision() == Decision.ATTACK_IN_THE_EVENING)
-            color = Color.ORANGE;
-        else if (getDecision() == Decision.RETREAT)
-            color = Color.RED;
-        else
-            color = Color.GRAY;
         
         // decision
-        g2D.setPaint(color);
+        g2D.setPaint(Decision.getColor(getDecision()));
         g2D.fillOval((int)(coords.getX() - (sizeX + thickness) / 2), (int)(coords.getY() - (sizeY + thickness) / 2), sizeX + thickness, sizeY + thickness);
 
         // general / traitor
@@ -250,7 +228,7 @@ public class General extends BlockchainNode implements Drawable
         g2D.setPaint(Color.WHITE);
         g2D.drawString(getName(), coords.getX() - sizeX / 2, coords.getY() - sizeY);
 
-        if (miningPendingTransactions)
+        if (processingPendingTransactions)
             g2D.drawString("Mining..." , coords.getX() - sizeX / 2, coords.getY() + sizeY + 5);
         if (voted)
             g2D.drawString("End Sync" , coords.getX() - sizeX / 2, coords.getY() + sizeY + 20);

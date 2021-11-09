@@ -59,7 +59,7 @@ public class Blockchain
         for (Transaction<?> transaction : pendingTransactions) {
             // if this transaction was confirmed by the majority of nodes
             // it can be added to the blockchain
-            if (transaction.getConfirms() > CommandService.getGenerals().size() / 2 + 1) {
+            if (transaction.getConfirms() > CommandService.getGenerals().size() / 2) {
                 verifiedTransactions.add(transaction);
                 pendingTransactions.remove(transaction);
             }
@@ -74,23 +74,23 @@ public class Blockchain
     public void createTransaction(Transaction<?> transaction) {
         pendingTransactions.add(transaction);
     }
-    public boolean contains(Transaction<?> transaction) {
+    public Transaction<?> contains(Transaction<?> transaction) {
         for (Block b : blocks) {
             for (Transaction<?> t : b.getTransactions()) {
                 if (t.equals(transaction)) {
-                    return true;
+                    return t;
                 }
             }
         }
-        return false;
+        return null;
     }
-    public boolean pendingContains(Transaction<?> transaction) {
+    public Transaction<?> pendingContains(Transaction<?> transaction) {
         for (Transaction<?> t : pendingTransactions) {
             if (t.equals(transaction)) {
-                return true;
+                return t;
             }
         }
-        return false;
+        return null;
     }
     public boolean isChainValid() throws NoSuchAlgorithmException 
     {

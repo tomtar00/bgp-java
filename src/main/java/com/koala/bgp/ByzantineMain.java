@@ -74,7 +74,7 @@ public class ByzantineMain
                     SimpleLogger.pressAnyKeyToContinue();
                 }  
             }).start();  
-        }
+        }  
     }
     private static void summarizeBattle()
     {
@@ -137,7 +137,7 @@ public class ByzantineMain
             frame = new FrameMain(SCREEN_SIZE_X, SCREEN_SIZE_Y);
 
             sendOriginMessages();      
-            debugLogGenerals();         
+            debugLogGenerals();        
 
             Time.init();
             Time.timeScale = 3f;

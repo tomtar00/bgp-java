@@ -13,7 +13,7 @@ import com.koala.bgp.utils.SimpleLogger;
 public abstract class BlockchainNode 
 {
     protected Blockchain blockchain;
-    protected volatile boolean miningPendingTransactions = false;
+    protected volatile boolean processingPendingTransactions = false;
 
     protected KeyPair keyPair;
 
@@ -31,7 +31,7 @@ public abstract class BlockchainNode
     }
 
     public Blockchain getBlockchain() { return this.blockchain; }
-    public boolean isMiningPendingTransactions() { return this.miningPendingTransactions; }
+    public boolean isMiningPendingTransactions() { return this.processingPendingTransactions; }
     public KeyPair getKeyPair() { return this.keyPair; }
 
     public boolean transactionIsValid(Transaction<?> transaction)
@@ -47,7 +47,7 @@ public abstract class BlockchainNode
     protected void processPendingTransactions() throws NoSuchAlgorithmException 
     {
         blockchain.minePendingTransactions();
-        miningPendingTransactions = false;
+        processingPendingTransactions = false;
     }
     
     protected abstract ArrayList<BlockchainNode> getOtherNodes();

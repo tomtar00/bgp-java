@@ -19,7 +19,7 @@ public abstract class Transaction<T>
     private byte[] signatureBytes;
     private boolean signed;
 
-    private int confirms;
+    protected int confirms;
 
     protected Transaction(PublicKey sender, PublicKey recipient) {
         this.senderPublicKey = sender;
