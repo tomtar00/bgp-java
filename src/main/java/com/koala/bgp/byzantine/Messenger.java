@@ -14,7 +14,7 @@ import java.awt.Graphics2D;
 
 public class Messenger implements Drawable
 {
-    private final static int MSG_INTERRUPT_PRECENT = 10;
+    private final static int MSG_INTERRUPT_PRECENT = 0;
     private final static int RANDOM_CIRCLE_OFFSET_RADIUS = 15;
 
     private Message message;

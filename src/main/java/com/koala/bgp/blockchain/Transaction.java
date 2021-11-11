@@ -11,6 +11,9 @@ import com.koala.bgp.utils.SimpleLogger;
 
 public abstract class Transaction<T>
 {
+    protected long id;
+    protected static long id_counter; 
+
     protected PublicKey senderPublicKey;
     protected PublicKey recipientPublicKey;
     protected T data;
@@ -24,6 +27,7 @@ public abstract class Transaction<T>
     protected Transaction(PublicKey sender, PublicKey recipient) {
         this.senderPublicKey = sender;
         this.recipientPublicKey = recipient;
+        this.id = id_counter++;
 
         try {
             signature = Signature.getInstance("SHA256withDSA");
@@ -40,6 +44,7 @@ public abstract class Transaction<T>
         this.data = transaction.getData();
         this.signed = transaction.isSigned();
         this.signatureBytes = transaction.SignatureBytes().clone();
+        this.id = transaction.getId();
 
         try {
             signature = Signature.getInstance("SHA256withDSA");
@@ -51,6 +56,7 @@ public abstract class Transaction<T>
 
     public PublicKey getSenderPublicKey() { return senderPublicKey; }
     public PublicKey getRecipientPublicKey() { return recipientPublicKey; }
+    public long getId() { return id; }
     public T getData() { return data; }
     public boolean isSigned() { return signed; }
     public byte[] SignatureBytes() { return signatureBytes; }
@@ -92,6 +98,7 @@ public abstract class Transaction<T>
          
         return senderPublicKey.equals(c.getSenderPublicKey()) && 
                recipientPublicKey.equals(c.getRecipientPublicKey()) &&
-               data.equals(c.getData());
+               data.equals(c.getData()) && 
+               id == c.getId();
     }
 }

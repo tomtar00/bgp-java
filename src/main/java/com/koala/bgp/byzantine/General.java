@@ -86,18 +86,18 @@ public class General extends BlockchainNode implements Drawable
             if (pendingTransaction == null) 
             {
                 // add new msg to queue (memPool)
-                blockchain.getPendingTransactions().add(msg);               
+                pendingTransaction = msg;
+                blockchain.getPendingTransactions().add(pendingTransaction);               
             }
-            else 
-            {
-                // ...and increment number of verifications
-                // if the number of confirmations will be bigger than 50% of NUM_GENERALS
-                // add it to the blockchain
-                pendingTransaction.incrementConfirms();
-            }         
-            
-            if (pendingTransaction == null || msg.getSenderPublicKey().equals(keyPair.getPublic())) {
-                resendTransactionToAllGenerals(msg);
+
+            // increment number of verifications
+            // if the number of confirmations will be bigger than 50% of NUM_GENERALS
+            // add it to the blockchain ( processPendingTransactions() )
+            pendingTransaction.incrementConfirms();        
+
+
+            if (pendingTransaction.getConfirms() <= ByzantineMain.getNumOfGenerals() / 2) {
+                resendTransactionToAllGenerals(pendingTransaction);
             }
         }  
 
@@ -114,7 +114,7 @@ public class General extends BlockchainNode implements Drawable
 
                     super.processPendingTransactions();
 
-                    // make decision based on majority of common decisions in blockchain  
+                    // make decision based on majority of common decisions in the blockchain  
                     decision = makeDecision();
 
                 } catch (NoSuchAlgorithmException e) {
@@ -127,6 +127,9 @@ public class General extends BlockchainNode implements Drawable
     
     private synchronized boolean shouldEndRound() {
         return endRoundTimer > NO_MESSAGE_INTERVAL && !processingPendingTransactions;
+    }
+    private synchronized int getNumOfRounds() {
+        return ByzantineMain.getNumOfTraitors() + 1;
     }
     public synchronized Decision makeDecision() {
         java.util.List<Decision> decisionList = new java.util.ArrayList<>();
@@ -175,8 +178,8 @@ public class General extends BlockchainNode implements Drawable
             processPendingTransactions();
             currentRound++;
 
-            if (currentRound > ByzantineMain.getNumOfTraitors() + 1) {
-                SimpleLogger.logWarning(getName() + " voted to end decision phase");
+            if (currentRound > getNumOfRounds()) {
+                SimpleLogger.print(getName() + " voted to end decision phase");
                 CommandService.voteToEndSync(); 
                 voted = true;
             }
@@ -188,8 +191,7 @@ public class General extends BlockchainNode implements Drawable
                     SimpleLogger.pressAnyKeyToContinue();
                 }
                 endRoundTimer = 0;
-            }
-            
+            } 
         }
     }
 
@@ -198,7 +200,7 @@ public class General extends BlockchainNode implements Drawable
         return "{\n" +
             "   name='" + getName() + "'\n" +
             "   mining='" + isMiningPendingTransactions() + "'\n" +
-            "   pending transactions='" + getBlockchain().getPendingTransactions().size() + "'\n" +
+            "   pending transactions='" + getBlockchain().getPendingTransactions() + "'\n" +
             "   blockchain=\n" + getBlockchain() + "\n" +
             "   decision='" + getDecision() + "'\n" +
             "}\n";
