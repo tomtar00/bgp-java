@@ -212,6 +212,7 @@ public class ByzantineMain
         frame.getDebugPanel().clearDebugText();
         frame.getDebugPanel().concatDebugText("ACTIVE THREADS: " + Thread.activeCount() + "\n");
         frame.getDebugPanel().concatDebugText("ACTIVE MESSENGERS: " + CommandService.getMessengers().size() + "\n");
+        frame.getDebugPanel().concatDebugText("TOTAL MESSENGERS: " + Messenger.messCount + "\n");
         for (General general : CommandService.getGenerals()) {
             frame.getDebugPanel().concatDebugText(general.toString());
         }

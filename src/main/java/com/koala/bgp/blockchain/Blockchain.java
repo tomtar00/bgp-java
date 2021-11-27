@@ -74,17 +74,17 @@ public class Blockchain
     public void createTransaction(Transaction<?> transaction) {
         pendingTransactions.add(transaction);
     }
-    public Transaction<?> contains(Transaction<?> transaction) {
+    public boolean contains(Transaction<?> transaction) {
         for (Block b : blocks) {
             for (Transaction<?> t : b.getTransactions()) {
                 if (t.equals(transaction)) {
-                    return t;
+                    return true;
                 }
             }
         }
-        return null;
+        return false;
     }
-    public Transaction<?> pendingContains(Transaction<?> transaction) {
+    public Transaction<?> getPendingTransaction(Transaction<?> transaction) {
         for (Transaction<?> t : pendingTransactions) {
             if (t.equals(transaction)) {
                 return t;

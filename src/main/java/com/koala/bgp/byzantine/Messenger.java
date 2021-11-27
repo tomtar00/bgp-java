@@ -30,12 +30,16 @@ public class Messenger implements Drawable
     private float timeCounter = 0;
     private float timeToDeliver = 0;
 
+    // delete
+    public static int messCount = 0;
+
     public Messenger(Message message, General sender, General recipient) {
         this.message = message;
         Vector2 random_offset = Mathf.randomOneUnitCircle().multiply(RANDOM_CIRCLE_OFFSET_RADIUS);
         this.recipient = recipient;
         this.startCoords = sender.getCoords().add(random_offset);
         this.endCoords = recipient.getCoords().add(random_offset);
+        messCount++;
     }
 
     public Message getMessage() {

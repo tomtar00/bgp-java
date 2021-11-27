@@ -2,9 +2,8 @@ package com.koala.bgp.byzantine;
 
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 
 import com.koala.bgp.ByzantineMain;
 import com.koala.bgp.blockchain.*;
@@ -22,7 +21,9 @@ public class General extends BlockchainNode implements Drawable
     private boolean traitor = false;
     private boolean voted = false;
 
-    private Map<Decision, Boolean> opinions;
+    private final double SEND_MESSAGE_INTERVAL = .05;
+    private BlockingQueue<MessageDto> messagesToSend;
+    private double sendMsgTimer = 0.0;
 
     // ====
     
@@ -37,13 +38,9 @@ public class General extends BlockchainNode implements Drawable
         this.coords = coords;
         this.traitor = traitor;
 
-        opinions = new HashMap<Decision, Boolean>();
-        for (int i = 0; i < Decision.values().length; i++) {
-            Random rand = new Random();
-            opinions.put(Decision.values()[i], rand.nextInt(100) < 50);
-        }
-
         this.decision = Decision.randomDecision();
+
+        this.messagesToSend = new ArrayBlockingQueue<MessageDto>(4096);
     }
     
     public String getName() {
@@ -80,9 +77,9 @@ public class General extends BlockchainNode implements Drawable
     { 
         if (voted) return;
 
-        if (transactionIsValid(msg) && blockchain.contains(msg) == null) 
+        if (transactionIsValid(msg) && !blockchain.contains(msg)) 
         {
-            Transaction<?> pendingTransaction = blockchain.pendingContains(msg);
+            Transaction<?> pendingTransaction = blockchain.getPendingTransaction(msg);
             if (pendingTransaction == null) 
             {
                 // add new msg to queue (memPool)
@@ -135,7 +132,7 @@ public class General extends BlockchainNode implements Drawable
         java.util.List<Decision> decisionList = new java.util.ArrayList<>();
         for (Block b : blockchain.getBlocks()) {
             for (Transaction<?> t : b.getTransactions()) {
-                if (t != null /* && opinions.get(((Message)t).getDecision()) */)
+                if (t != null)
                     decisionList.add(((Message)t).getDecision());
             }
         }
@@ -153,8 +150,11 @@ public class General extends BlockchainNode implements Drawable
             Message msgForGeneral = new Message(decision, keyPair.getPublic(), general.getKeyPair().getPublic());           
             msgForGeneral.signTransaction(keyPair);
 
-            for (BlockchainNode recipient : getOtherNodes())
-                sendTransaction(new Message(msgForGeneral), recipient);  
+            for (BlockchainNode recipient : getOtherNodes()) 
+            {
+                //sendTransaction(new Message(msgForGeneral), recipient); 
+                messagesToSend.add(new MessageDto(new Message(msgForGeneral), recipient));
+            } 
 
             msgForGeneral.incrementConfirms();
             blockchain.getPendingTransactions().add(msgForGeneral);
@@ -167,14 +167,24 @@ public class General extends BlockchainNode implements Drawable
         {  
             Message msg = (Message)transaction;
             Message copy = new Message(msg);
-            sendTransaction(copy, general);  
+
+            //sendTransaction(copy, general);  
+            messagesToSend.add(new MessageDto(copy, general));
         }   
     }
-    public void update() {
+    public void update() 
+    {
         endRoundTimer += Time.getDeltaTime();
- 
-        if (!voted && shouldEndRound()) 
-        {   
+        sendMsgTimer += Time.getDeltaTime();
+        
+        if (sendMsgTimer > SEND_MESSAGE_INTERVAL && messagesToSend.size() > 0) {
+            MessageDto msgToSend = messagesToSend.poll();
+            sendTransaction(msgToSend.getMsg(), msgToSend.getRecipient());
+            sendMsgTimer = 0.0;
+        }
+
+        if (!voted && shouldEndRound()) {  
+
             processPendingTransactions();
             currentRound++;
 
@@ -200,7 +210,7 @@ public class General extends BlockchainNode implements Drawable
         return "{\n" +
             "   name='" + getName() + "'\n" +
             "   mining='" + isMiningPendingTransactions() + "'\n" +
-            "   pending transactions='" + getBlockchain().getPendingTransactions() + "'\n" +
+            "   pending transactions " + getBlockchain().getPendingTransactions().size() + "='" + getBlockchain().getPendingTransactions() + "'\n" +
             "   blockchain=\n" + getBlockchain() + "\n" +
             "   decision='" + getDecision() + "'\n" +
             "}\n";
@@ -235,4 +245,21 @@ public class General extends BlockchainNode implements Drawable
         if (voted)
             g2D.drawString("End Sync" , coords.getX() - sizeX / 2, coords.getY() + sizeY + 20);
     } 
+
+    class MessageDto {
+        private Transaction<?> msg;
+        private BlockchainNode recipient;
+
+        public MessageDto(Transaction<?> msg, BlockchainNode recipient) {
+            this.msg = msg;
+            this.recipient = recipient;
+        }
+
+        public Transaction<?> getMsg() {
+            return this.msg;
+        }        
+        public BlockchainNode getRecipient() {
+            return this.recipient;
+        }
+    }
 }
