@@ -24,7 +24,7 @@ public class Message extends Transaction<Decision>
 
     @Override
     public String toString() {
-        return getDecision() + " " + confirms;
+        return getDecision().toString();
     }
 
     @Override

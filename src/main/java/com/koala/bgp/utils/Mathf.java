@@ -35,6 +35,31 @@ public class Mathf
     
         return max.getKey();
     }
+    public static <T> List<T> mostCommons(List<T> list) {
+        Map<T, Integer> map = new HashMap<>();
+    
+        for (T t : list) {
+            Integer val = map.get(t);
+            map.put(t, val == null ? 1 : val + 1);
+        }
+    
+        Entry<T, Integer> max = null;
+    
+        for (java.util.Map.Entry<T, Integer> e : map.entrySet()) {
+            if (max == null || e.getValue() > max.getValue())
+                max = e;
+        }
+
+        List<T> result = new ArrayList<>();
+
+        for (java.util.Map.Entry<T, Integer> e : map.entrySet()) {
+            if (e.getValue() == max.getValue()) {
+                result.add(e.getKey());
+            }
+        }
+    
+        return result;
+    }
 
     public static Stack<Integer> randomUniqueIntStack(int from, int to) {
         Stack<Integer> stack = new Stack<>();

@@ -22,8 +22,6 @@ public abstract class Transaction<T>
     private byte[] signatureBytes;
     private boolean signed;
 
-    protected int confirms;
-
     protected Transaction(PublicKey sender, PublicKey recipient) {
         this.senderPublicKey = sender;
         this.recipientPublicKey = recipient;
@@ -60,9 +58,6 @@ public abstract class Transaction<T>
     public T getData() { return data; }
     public boolean isSigned() { return signed; }
     public byte[] SignatureBytes() { return signatureBytes; }
-    public int getConfirms() { return confirms; }
-
-    public void incrementConfirms() { confirms++; }
 
     public synchronized void signTransaction(KeyPair signingKey) {
         if (!signingKey.getPublic().equals(senderPublicKey)) {

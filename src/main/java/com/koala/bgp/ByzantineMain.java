@@ -3,6 +3,7 @@ package com.koala.bgp;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.Scanner;
 import java.util.Stack;
 import java.util.stream.Collectors;
@@ -20,9 +21,9 @@ public class ByzantineMain
     public final static float TARGET_FPS = 30f;
 
     public final static int MIN_GENERALS = 3;
-    public final static int MAX_GENERALS = 10;
+    public final static int MAX_GENERALS = 50;
     public final static int MIN_ENCLEVEL = 1;
-    public final static int MAX_ENCLEVEL = 5;
+    public final static int MAX_ENCLEVEL = 3;
 
     private static int NUM_GENERALS;
     private static int NUM_TRAITORS;
@@ -42,12 +43,20 @@ public class ByzantineMain
         {
             try
             { 
-                double angle = i * 2 * Math.PI / NUM_GENERALS;
-                int x = (int)(Math.sin(angle) * GENERAL_SPAWN_RADIUS);
-                int y = (int)(Math.cos(angle) * GENERAL_SPAWN_RADIUS);
-                int offsetX = BattlePanel.PANEL_SIZE_X / 2;
-                int offsetY = BattlePanel.PANEL_SIZE_Y / 2;
-                Vector2 coords = new Vector2(x + offsetX, y + offsetY);
+                // circle
+                //double angle = i * 2 * Math.PI / NUM_GENERALS;
+                //int x = (int)(Math.sin(angle) * GENERAL_SPAWN_RADIUS);
+                //int y = (int)(Math.cos(angle) * GENERAL_SPAWN_RADIUS);
+                //int offsetX = BattlePanel.PANEL_SIZE_X / 2;
+                //int offsetY = BattlePanel.PANEL_SIZE_Y / 2;
+                //Vector2 coords = new Vector2(x + offsetX, y + offsetY);
+
+                // random
+                Random rand = new Random();
+                int edgeBoundary = 100;
+                int x = rand.nextInt(BattlePanel.PANEL_SIZE_X - 2 * edgeBoundary) + edgeBoundary;
+                int y = rand.nextInt(BattlePanel.PANEL_SIZE_Y - 2 * edgeBoundary) + edgeBoundary;
+                Vector2 coords = new Vector2(x, y);
 
                 Boolean isTraitor = randomStack.pop();
                 String entityName = isTraitor ? "Traitor " : "General ";

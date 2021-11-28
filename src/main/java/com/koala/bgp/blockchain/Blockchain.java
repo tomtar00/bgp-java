@@ -5,8 +5,6 @@ import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-import com.koala.bgp.byzantine.CommandService;
-
 public class Blockchain
 {
     private List<Block> blocks; 
@@ -57,12 +55,8 @@ public class Blockchain
         List<Transaction<?>> verifiedTransactions = new ArrayList<>();
 
         for (Transaction<?> transaction : pendingTransactions) {
-            // if this transaction was confirmed by the majority of nodes
-            // it can be added to the blockchain
-            if (transaction.getConfirms() > CommandService.getGenerals().size() / 2) {
-                verifiedTransactions.add(transaction);
-                pendingTransactions.remove(transaction);
-            }
+            verifiedTransactions.add(transaction);
+            pendingTransactions.remove(transaction);
         }
 
         if (verifiedTransactions.size() > 0) {
