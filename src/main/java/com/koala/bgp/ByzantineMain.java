@@ -21,9 +21,9 @@ public class ByzantineMain
     public final static float TARGET_FPS = 30f;
 
     public final static int MIN_GENERALS = 3;
-    public final static int MAX_GENERALS = 50;
+    public final static int MAX_GENERALS = 150;
     public final static int MIN_ENCLEVEL = 1;
-    public final static int MAX_ENCLEVEL = 3;
+    public final static int MAX_ENCLEVEL = 5;
 
     private static int NUM_GENERALS;
     private static int NUM_TRAITORS;
@@ -77,7 +77,7 @@ public class ByzantineMain
         for (General general : CommandService.getGenerals()) {
             new Thread(() -> {
                 try {
-                    general.sendMyDecisionToAllGenerals(general.getDecision());
+                    general.sendMyDecisionToAllGenerals(general.getDecision(), 1);
                 } catch (NoSuchAlgorithmException e) {
                     e.printStackTrace();
                     SimpleLogger.pressAnyKeyToContinue();
@@ -176,7 +176,7 @@ public class ByzantineMain
                     if (t_fps > 1) {
                         fps = 1.0 / Time.getDeltaTimeUnscaled();
                         t_fps = 0.0;
-                        debugLogGenerals();
+                        //debugLogGenerals();
                     }
 
                     limitFrameRate(TARGET_FPS);
@@ -221,7 +221,7 @@ public class ByzantineMain
         frame.getDebugPanel().clearDebugText();
         frame.getDebugPanel().concatDebugText("ACTIVE THREADS: " + Thread.activeCount() + "\n");
         frame.getDebugPanel().concatDebugText("ACTIVE MESSENGERS: " + CommandService.getMessengers().size() + "\n");
-        frame.getDebugPanel().concatDebugText("TOTAL MESSENGERS: " + Messenger.messCount + "\n");
+        frame.getDebugPanel().concatDebugText("TOTAL MESSENGERS: " + Messenger.getMessengersCount() + "\n");
         for (General general : CommandService.getGenerals()) {
             frame.getDebugPanel().concatDebugText(general.toString());
         }
@@ -235,6 +235,11 @@ public class ByzantineMain
     }
     public static int getEncLevel() {
         return ENC_LEVEL;
+    }
+    public static int getTotalNumMessengers() {
+        int numRounds = getNumOfTraitors() + 1;
+        int numGen = getNumOfGenerals();
+        return numGen * (numGen - 1) * numRounds;
     }
 }
 

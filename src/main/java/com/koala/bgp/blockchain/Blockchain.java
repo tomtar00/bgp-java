@@ -51,12 +51,14 @@ public class Blockchain
     private Block createGenesicBlock() throws NoSuchAlgorithmException {
         return new Block("0", new ArrayList<>());
     }
-    public void minePendingTransactions() throws NoSuchAlgorithmException {
+    public void minePendingTransactions(Verify verify) throws NoSuchAlgorithmException {
         List<Transaction<?>> verifiedTransactions = new ArrayList<>();
 
         for (Transaction<?> transaction : pendingTransactions) {
-            verifiedTransactions.add(transaction);
-            pendingTransactions.remove(transaction);
+            if (verify.verifyTransaction(transaction)) {
+                verifiedTransactions.add(transaction);
+                pendingTransactions.remove(transaction);
+            }
         }
 
         if (verifiedTransactions.size() > 0) {
@@ -117,6 +119,10 @@ public class Blockchain
         }
         result += "\t--------/";
         return result;
+    }
+
+    public interface Verify {
+        boolean verifyTransaction(Transaction<?> transaction);
     }
 
 }

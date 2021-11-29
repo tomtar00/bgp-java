@@ -44,9 +44,9 @@ public abstract class BlockchainNode
             return false;
         }
     }
-    protected void processPendingTransactions() throws NoSuchAlgorithmException 
+    protected void processPendingTransactions(Blockchain.Verify verify) throws NoSuchAlgorithmException 
     {
-        blockchain.minePendingTransactions();
+        blockchain.minePendingTransactions(verify);
         processingPendingTransactions = false;
     }
     

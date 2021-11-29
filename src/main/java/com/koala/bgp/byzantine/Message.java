@@ -9,22 +9,41 @@ import com.koala.bgp.utils.SimpleLogger;
 
 public class Message extends Transaction<Decision>
 {
+    private int roundIndex;
+
     public Message(Decision decision, PublicKey senderPublicKey, PublicKey recipientPublicKey) {
         super(senderPublicKey, recipientPublicKey);
         this.data = decision;
+        this.roundIndex = 1;
     }
     public Message(Message msg) {
         super(msg);
         this.data = msg.getDecision();
+        this.roundIndex = 1;
+    }
+    public Message(Message msg, int roundIndex) {
+        super(msg);
+        this.data = msg.getDecision();
+        this.roundIndex = roundIndex;
     }
     
+
+    public int getRoundIndex() {
+        return roundIndex;
+    }
     public Decision getDecision() {
         return this.data;
     }
 
+    public void setRoundIndex(int roundIndex) {
+        this.roundIndex = roundIndex;
+    }
+
+
+
     @Override
     public String toString() {
-        return getDecision().toString();
+        return getDecision() + " " + roundIndex;
     }
 
     @Override

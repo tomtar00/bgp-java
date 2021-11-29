@@ -31,7 +31,7 @@ public class Messenger implements Drawable
     private float timeToDeliver = 0;
 
     // delete
-    public static int messCount = 0;
+    private static int messCount = 0;
 
     public Messenger(Message message, General sender, General recipient) {
         this.message = message;
@@ -56,6 +56,9 @@ public class Messenger implements Drawable
     }
     public boolean isSpy() {
         return spy;
+    }
+    public static int getMessengersCount() {
+        return messCount;
     }
 
     public void run() 
