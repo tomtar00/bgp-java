@@ -149,7 +149,7 @@ public class ByzantineMain
             debugLogGenerals();        
 
             Time.init();
-            Time.timeScale = 3f;
+            Time.timeScale = 1f;
             double t_fps = 0;
             while (CommandService.isRunning())
             {

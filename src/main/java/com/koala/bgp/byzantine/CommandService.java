@@ -4,9 +4,10 @@ import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.koala.bgp.blockchain.BlockchainNode;
-import com.koala.bgp.utils.SimpleLogger;
+import com.koala.bgp.utils.*;
 
 public class CommandService
 {
@@ -61,5 +62,20 @@ public class CommandService
             }
         }
         return null;
+    }
+
+    public static synchronized double getSystemEnergy() {
+        List<Decision> decisions = CommandService.getGenerals().stream().filter(g -> !g.isTraitor()).map(General::getDecision).collect(Collectors.toList());
+        Decision mostCommon = Mathf.mostCommon(decisions);
+        float mostCommountCount = 0;
+        float allCount = decisions.size();
+        for (var decision : decisions) {
+            if (decision.equals(mostCommon)) {
+                mostCommountCount++;
+            }
+        }
+
+        return (allCount - mostCommountCount) / allCount;
+
     }
 }

@@ -7,6 +7,7 @@ import java.util.ArrayList;
 
 import com.koala.bgp.ByzantineMain;
 import com.koala.bgp.byzantine.*;
+import com.koala.bgp.utils.Time;
 
 public class BattlePanel extends JPanel 
 {
@@ -14,6 +15,7 @@ public class BattlePanel extends JPanel
     public final static int PANEL_SIZE_Y = 800;
 
     private Graphics2D g2D;
+    private double t = 0.0;
 
     public BattlePanel() 
     {
@@ -54,5 +56,12 @@ public class BattlePanel extends JPanel
         g2D.fillRect(0, PANEL_SIZE_Y - height, width, height);
         g2D.setColor(Color.WHITE);
         g2D.drawString((int)(progress * 100)+"%", width - 32, PANEL_SIZE_Y - height - 5);
+
+        // draw boltzmann
+        t += Time.getDeltaTime();
+        double energy = CommandService.getSystemEnergy();
+        double boltz = Math.exp(-energy/t);
+        g2D.setColor(Color.WHITE);
+        g2D.drawString((int)(boltz * 100)+"%", PANEL_SIZE_X - 30, 15);
     }
 }
