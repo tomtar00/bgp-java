@@ -7,7 +7,7 @@ import javax.swing.*;
 public class FrameMain extends JFrame 
 {
     private BattlePanel battlePanel;
-    private DebugPanel debugPanel;
+    private SetupPanel setupPanel;
 
     public FrameMain(int sizeX, int sizeY) 
     {
@@ -16,9 +16,10 @@ public class FrameMain extends JFrame
         this.setLocationRelativeTo(null);
         this.setVisible(true);
         this.setState(JFrame.NORMAL);
+        this.setResizable(false);
 
-        battlePanel = new BattlePanel();
-        debugPanel = new DebugPanel();
+        battlePanel = new BattlePanel(sizeY);
+        setupPanel = new SetupPanel(sizeY);
 
         Container contentPanel = this.getContentPane();  
         GroupLayout layout = new GroupLayout(contentPanel);
@@ -28,13 +29,13 @@ public class FrameMain extends JFrame
 
         layout.setHorizontalGroup(
             layout.createSequentialGroup()
-                .addComponent(debugPanel)
                 .addComponent(battlePanel)
+                .addComponent(setupPanel)
         );
         layout.setVerticalGroup(  
             layout.createParallelGroup(GroupLayout.Alignment.BASELINE)  
-                .addComponent(debugPanel)  
                 .addComponent(battlePanel)
+                .addComponent(setupPanel)
         );
 
         this.pack();
@@ -45,7 +46,7 @@ public class FrameMain extends JFrame
     public BattlePanel getBattlePanel() {
         return this.battlePanel;
     }
-    public DebugPanel getDebugPanel() {
-        return this.debugPanel;
+    public SetupPanel getDebugPanel() {
+        return this.setupPanel;
     }
 }
