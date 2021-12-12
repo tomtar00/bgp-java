@@ -10,6 +10,7 @@ import com.koala.bgp.ByzantineMain;
 import com.koala.bgp.blockchain.*;
 import com.koala.bgp.utils.*;
 import com.koala.bgp.visual.Drawable;
+import com.koala.bgp.visual.SetupPanel;
 
 import java.awt.*;
 
@@ -237,26 +238,27 @@ public class General extends BlockchainNode implements Drawable {
         int y = (int) (coords.getY() - sizeY / 2);
    
         g2D.setStroke(new BasicStroke(thickness));
-        
-        // general / traitor
-        if (traitor)
-            g2D.setPaint(Color.decode("#ff6e6e"));
-        else
-            g2D.setPaint(Color.decode("#49b2fc"));
-        g2D.fillOval(x, y, sizeX, sizeY);
 
-        // outline (decision)
-        g2D.setPaint(Decision.getColor(getDecision()));
-        g2D.drawOval(x, y, sizeX, sizeY);
+            // general / traitor
+            if (traitor)
+                g2D.setPaint(Color.decode("#ff6e6e"));
+            else
+                g2D.setPaint(Color.decode("#49b2fc"));
+            g2D.fillOval(x, y, sizeX, sizeY);
 
-        // name
-        g2D.setPaint(traitor ? Color.RED : Color.WHITE);
-        g2D.drawString(getName(), x - 8, y - 8);
+                // outline (decision)
+                g2D.setPaint(Decision.getColor(getDecision()));
+                g2D.drawOval(x, y, sizeX, sizeY);
+            if(SetupPanel.showDetails) {
+                // name
+                g2D.setPaint(traitor ? Color.RED : Color.WHITE);
+                g2D.drawString(getName(), x - 8, y - 8);
 
-        if (processingPendingTransactions)
-            g2D.drawString("Mining...", x - 8, y + 1.8f * sizeY);
-        if (voted)
-            g2D.drawString("End Sync", x - 8, y + 1.5f * sizeY);
+                if (processingPendingTransactions)
+                    g2D.drawString("Mining...", x - 8, y + 1.8f * sizeY);
+                if (voted)
+                    g2D.drawString("End Sync", x - 8, y + 1.5f * sizeY);
+            }
     }
 
     class MessageDto {

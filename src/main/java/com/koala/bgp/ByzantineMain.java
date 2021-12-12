@@ -73,68 +73,76 @@ public class ByzantineMain
         }
         return input;
     }
+    public static void Rendering(int generals,int traitors, int enc_level){
+        NUM_GENERALS = generals;
+        NUM_TRAITORS = traitors;
+        ENC_LEVEL = enc_level;
+
+        CommandService.init(NUM_GENERALS, NUM_TRAITORS);
+
+        CommandService.sendOriginMessages();
+
+        Time.init();
+        Time.timeScale = 1f;
+        double t_fps = 0;
+        while (CommandService.isRunning())
+        {
+            try
+            {
+                Time.record();
+                t_fps += Time.getDeltaTimeUnscaled();
+
+                // update messenger position
+                ArrayList<Messenger> currentMessengers = new ArrayList<>(CommandService.getMessengers());
+                for (Messenger msger : currentMessengers) {
+                    if (msger != null)
+                        msger.update();
+                }
+
+                for (General general : CommandService.getGenerals()) {
+                    general.update();
+                }
+                //System.out.println("LOGG Thread:" + Thread.currentThread().getId());
+                // update and render battle
+                frame.getBattlePanel().validate();
+                frame.getBattlePanel().repaint();
+
+                // update fps every second
+                if (t_fps > 1) {
+                    fps = 1.0 / Time.getDeltaTimeUnscaled();
+                    t_fps = 0.0;
+                }
+
+                limitFrameRate(TARGET_FPS);
+            }
+            catch (Exception e)
+            {
+                e.printStackTrace();
+                SimpleLogger.pressAnyKeyToContinue();
+            }
+        }
+        summarizeBattle();
+
+    }
 
     public static void main(String[] args) 
     {
         try
         {
-            Scanner sc = new Scanner(System.in);
-
-            SimpleLogger.printSameLine("Set number of generals " + "(" + MIN_GENERALS + "-" + MAX_GENERALS + "): ");
-            NUM_GENERALS = inputValue(sc, MIN_GENERALS, MAX_GENERALS);
-            SimpleLogger.printSameLine("Set number of traitors " + "(0-" + (NUM_GENERALS - 1) / 3 + "): ");
-            NUM_TRAITORS = inputValue(sc, 0, (NUM_GENERALS - 1) / 3);
-            SimpleLogger.printSameLine("Set encryption level " + "(" + MIN_ENCLEVEL + "-" + MAX_ENCLEVEL + "): ");
-            ENC_LEVEL = inputValue(sc, MIN_ENCLEVEL, MAX_ENCLEVEL);
-
-            CommandService.init(NUM_GENERALS, NUM_TRAITORS);
+//            Scanner sc = new Scanner(System.in);
+//
+//            SimpleLogger.printSameLine("Set number of generals " + "(" + MIN_GENERALS + "-" + MAX_GENERALS + "): ");
+//            NUM_GENERALS = inputValue(sc, MIN_GENERALS, MAX_GENERALS);
+//            SimpleLogger.printSameLine("Set number of traitors " + "(0-" + (NUM_GENERALS - 1) / 3 + "): ");
+//            NUM_TRAITORS = inputValue(sc, 0, (NUM_GENERALS - 1) / 3);
+//            SimpleLogger.printSameLine("Set encryption level " + "(" + MIN_ENCLEVEL + "-" + MAX_ENCLEVEL + "): ");
+//            ENC_LEVEL = inputValue(sc, MIN_ENCLEVEL, MAX_ENCLEVEL);
+//
+//
             frame = new FrameMain(SCREEN_SIZE_X, SCREEN_SIZE_Y);
 
-            CommandService.sendOriginMessages();           
-
-            Time.init();
-            Time.timeScale = 1f;
-            double t_fps = 0;
-            while (CommandService.isRunning())
-            {
-                try
-                {
-                    Time.record();
-                    t_fps += Time.getDeltaTimeUnscaled();
-
-                    // update messenger position
-                    ArrayList<Messenger> currentMessengers = new ArrayList<>(CommandService.getMessengers());
-                    for (Messenger msger : currentMessengers) {
-                        if (msger != null)
-                            msger.update();
-                    }
-
-                    for (General general : CommandService.getGenerals()) {
-                        general.update();
-                    }
-
-                    // update and render battle
-                    frame.getBattlePanel().repaint();
-
-                    // update fps every second
-                    if (t_fps > 1) {
-                        fps = 1.0 / Time.getDeltaTimeUnscaled();
-                        t_fps = 0.0;
-                    }
-
-                    limitFrameRate(TARGET_FPS);
-                }
-                catch (Exception e)
-                {
-                    e.printStackTrace();
-                    SimpleLogger.pressAnyKeyToContinue();
-                }
-            }   
-
-            summarizeBattle(); 
-            frame.getBattlePanel().repaint();
-
-            sc.close();
+//
+//            sc.close();
         }
         catch (Exception e)
         {
