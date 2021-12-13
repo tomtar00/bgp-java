@@ -30,6 +30,10 @@ public class Messenger implements Drawable
     private float timeCounter = 0;
     private float timeToDeliver = 0;
 
+    public static void setMessCount(int messCount) {
+        Messenger.messCount = messCount;
+    }
+
     // delete
     private static int messCount = 0;
 
