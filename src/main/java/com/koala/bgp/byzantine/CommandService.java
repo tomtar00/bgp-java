@@ -17,8 +17,6 @@ import com.koala.bgp.visual.*;
 
 public class CommandService
 {
-    public final static int GENERAL_SPAWN_RADIUS = 320;
-
     private static volatile List<General> generals;
     private static volatile List<Messenger> messengers;
     private static volatile boolean isRunning;
@@ -32,6 +30,7 @@ public class CommandService
         messengers = Collections.synchronizedList(new ArrayList<>());
         votes = 0;
         Messenger.setMessCount(0);
+
         Stack<Boolean> randomStack = Mathf.randomBoolStack(0, num_generals, num_traitors);
 
         // create generals and set their positions
@@ -39,23 +38,27 @@ public class CommandService
         {
             try
             {
+                int paddingLeft = 200;
+                int paddingRight = 50;
+                int paddingTop = 80;
+                int paddingBottom = 80;
                 Vector2 coords;
-                if(SetupPanel.ChooseAlgorithm == "Circle") {
-                 //circle
-                     double angle = i * 2 * Math.PI / num_generals;
-                     int x = (int)(Math.sin(angle) * GENERAL_SPAWN_RADIUS);
-                     int y = (int)(Math.cos(angle) * GENERAL_SPAWN_RADIUS);
-                     int offsetX = BattlePanel.PANEL_SIZE_X / 2;
-                     int offsetY = ByzantineMain.SCREEN_SIZE_Y / 2;
-                     coords = new Vector2(x + offsetX, y + offsetY);
+
+                if (SetupPanel.ChooseAlgorithm == "Circle") {
+                    //circle
+                    double angle = i * 2 * Math.PI / num_generals;
+                    int view_x = (BattlePanel.PANEL_SIZE_X - (paddingLeft + paddingRight));
+                    int view_y = (ByzantineMain.SCREEN_SIZE_Y - (paddingTop + paddingBottom));
+                    int GENERAL_SPAWN_RADIUS = view_x > view_y ? view_y / 2 : view_x / 2;
+                    int x = (int)(Math.sin(angle) * GENERAL_SPAWN_RADIUS);
+                    int y = (int)(Math.cos(angle) * GENERAL_SPAWN_RADIUS);
+                    int offsetX = paddingLeft + view_x / 2;
+                    int offsetY = paddingTop + view_y / 2;
+                    coords = new Vector2(x + offsetX, y + offsetY);
                 }
                 else {
                     // random
                     Random rand = new Random();
-                    int paddingLeft = 200;
-                    int paddingRight = 50;
-                    int paddingTop = 80;
-                    int paddingBottom = 80;
                     int x = rand.nextInt(BattlePanel.PANEL_SIZE_X - (paddingLeft + paddingRight)) + paddingLeft;
                     int y = rand.nextInt(ByzantineMain.SCREEN_SIZE_Y - (paddingTop + paddingBottom)) + paddingTop;
                     coords = new Vector2(x, y);

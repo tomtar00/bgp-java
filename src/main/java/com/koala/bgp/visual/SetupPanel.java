@@ -5,8 +5,6 @@ import com.koala.bgp.utils.Time;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 
 public class SetupPanel extends JPanel
 {
@@ -24,20 +22,17 @@ public class SetupPanel extends JPanel
             intArray[i] = i+3;
         }
 
-        JComboBox generalListComboBox = new JComboBox(intArray);
+        JComboBox<Integer> generalListComboBox = new JComboBox<Integer>(intArray);
         generalListComboBox.setMaximumSize(new Dimension(800, 25));
         ((JLabel)generalListComboBox.getRenderer()).setHorizontalAlignment(JLabel.RIGHT);
-        JComboBox traitorsListComboBox = new JComboBox();
+        JComboBox<Integer> traitorsListComboBox = new JComboBox<Integer>();
         traitorsListComboBox.addItem(0);
         ((JLabel)traitorsListComboBox.getRenderer()).setHorizontalAlignment(JLabel.RIGHT);
         traitorsListComboBox.setMaximumSize(new Dimension(800, 25));
         generalListComboBox.addActionListener(event -> {
 
-            JComboBox comboBox = (JComboBox) event.getSource();
-
-            int value = Integer.parseInt(comboBox.getSelectedItem().toString());
+            int value = Integer.parseInt(generalListComboBox.getSelectedItem().toString());
             traitorsListComboBox.removeAllItems();
-
 
             for (int i = 0; i <= (value - 1) / 3; i++) {
                 traitorsListComboBox.addItem(i);
@@ -73,8 +68,6 @@ public class SetupPanel extends JPanel
         this.add(generalsPanel);
         // ======================================================
 
-        // w ten sam sposob:
-        // traitorsInput
 
 
         // ==============================Traitors=================================
@@ -96,12 +89,12 @@ public class SetupPanel extends JPanel
 
         // ==============================encryptionLevelInput=================================
         // encryptionLevelInput
-        JComboBox encryptionLevelInputListComboBox = new JComboBox();
+        JComboBox<Integer> encryptionLevelInputListComboBox = new JComboBox<Integer>();
         encryptionLevelInputListComboBox.setMaximumSize(new Dimension(200, 25));
         ((JLabel)encryptionLevelInputListComboBox.getRenderer()).setHorizontalAlignment(JLabel.RIGHT);
 
         for (int i = 1; i <= 5; i++) {
-            encryptionLevelInputListComboBox.addItem(String.valueOf(i));
+            encryptionLevelInputListComboBox.addItem(i);
         }
 
         JLabel encryptionLevelInputLabel = new JLabel("Encryption Level");
@@ -122,7 +115,7 @@ public class SetupPanel extends JPanel
 
         // ==============================Algorithm=================================
         // algorithmDropdown (do wyboru miedzy algorytmem standardowym i króla)
-        JComboBox algorithmDropdownListComboBox = new JComboBox();
+        JComboBox<String> algorithmDropdownListComboBox = new JComboBox<String>();
         algorithmDropdownListComboBox.setMaximumSize(new Dimension(300, 25));
         ((JLabel)algorithmDropdownListComboBox.getRenderer()).setHorizontalAlignment(JLabel.RIGHT);
 
@@ -151,7 +144,7 @@ public class SetupPanel extends JPanel
 
         // (moze dropdown do kontroli pozycji generałow - w kółku, losowo itd) generation system
 
-        JComboBox generationSystemListComboBox = new JComboBox();
+        JComboBox<String> generationSystemListComboBox = new JComboBox<String>();
         generationSystemListComboBox.setMaximumSize(new Dimension(300, 25));
         ((JLabel)generationSystemListComboBox.getRenderer()).setHorizontalAlignment(JLabel.RIGHT);
 
@@ -182,7 +175,7 @@ public class SetupPanel extends JPanel
 
         // ... i jeszcze jakas kontrola skalowania czasu (Time.timeScale)
         // timeScale
-        JComboBox timeScaleListComboBox = new JComboBox();
+        JComboBox<Double> timeScaleListComboBox = new JComboBox<Double>();
         timeScaleListComboBox.setMaximumSize(new Dimension(400, 25));
         ((JLabel)timeScaleListComboBox.getRenderer()).setHorizontalAlignment(JLabel.RIGHT);
 
@@ -242,14 +235,15 @@ public class SetupPanel extends JPanel
         startButtonPanel.setSize(new Dimension(500, 100));
 
         //Przycisk startu
-        Button startButton = new Button("Start");
+        Button startButton = new Button("START");
+        startButton.setBackground(Color.decode("#8ced9c"));
         startButton.setMaximumSize(new Dimension(500, 50));
         startButtonPanel.add(startButton);
         this.add(startButtonPanel);
         this.add(Box.createRigidArea(new Dimension(0,10)));
 
-        Button pauseButton = new Button("Pause");
-
+        Button pauseButton = new Button("PAUSE");
+        pauseButton.setBackground(Color.decode("#8ced9c"));
         pauseButton.setMaximumSize(new Dimension(500, 50));
         this.add(pauseButton);
 
@@ -270,25 +264,18 @@ public class SetupPanel extends JPanel
             int generalChoose = Integer.parseInt(generalListComboBox.getSelectedItem().toString());
             int traitorsChoose = Integer.parseInt(traitorsListComboBox.getSelectedItem().toString());
             int levelChoose = Integer.parseInt(encryptionLevelInputListComboBox.getSelectedItem().toString());
-//            String algorithmChoose = algorithmDropdownListComboBox.getSelectedItem().toString();
-//            String generationChoose = generationSystemListComboBox.getSelectedItem().toString();
-//            double timeScale = Double.parseDouble(timeScaleListComboBox.getSelectedItem().toString());
-            //System.out.println(generalChoose+"/" + traitorsChoose +"/"+levelChoose +"/"+ algorithmChoose+"/" + generationChoose + "/" + timeScale);
-            if(renderThread!=null)
-                renderThread.interrupt();
+
+            ByzantineMain.interruptRenderThread();
+            while(ByzantineMain.isRendering());
+
             renderThread = new Thread(()->{
-
-                startButton.setLabel("Reset");
-                pauseButton.setLabel("Pause");
                 ByzantineMain.Rendering(generalChoose,traitorsChoose,levelChoose);
-
                 startButton.setLabel("Start");
-
             });
+
+            startButton.setLabel("Reset");
+            pauseButton.setLabel("Pause");
             renderThread.start();
-            startButton.setLabel("Stop");
-
-
         });
         showName.addActionListener(r->{
             if(showDetails)
@@ -301,41 +288,7 @@ public class SetupPanel extends JPanel
                 showDetails = true;
             }
         });
-
-
-
-
-
-
-
-
-
-
-
-        // przyciski play, pause (i moze reset)...
-
-
-        // w inputach bedzie trzeba pokazac w jakich przedzialach mozna podawac wartosci (poczatek funkcji main w ByzantineMain.java)
-        // sprawdzac czy sa w tych przedzialach
-        // jesli nie sa, to pokazac komunikat i nie startowac symulacji
-
-        // ogolnie to zalezy nam na kontroli programu z poziomu okna (bez uzycia terminala)
-
-        // no i pamietaj ze musze miec pełny dostep do wartosci
-        // wiec rob duzo getterow albo cos xD
     }
-
-    /* private void Play() {
-        // tutaj powinna byc cala główna pętla z maina (ByznatineMain)
-        // trzeba zrobic z niej funkcje z parametrami i tu wywolywac
-        // no i najpierw sprawdzac czy symulacja juz nie trwa
-    }
-    private void Pause() {
-        //Time.timeScale = 0
-    }
-    private void Stop() {
-
-    } */
 
     public String getChooseAlgorithm() {
         return ChooseAlgorithm;

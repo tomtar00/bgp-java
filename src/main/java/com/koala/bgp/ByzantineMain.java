@@ -3,7 +3,6 @@ package com.koala.bgp;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
 import java.util.stream.Collectors;
 
 import com.koala.bgp.byzantine.*;
@@ -30,6 +29,8 @@ public class ByzantineMain
     private static FrameMain frame;
 
     private static double fps = 0;
+    private static volatile boolean interrupted = false;
+    private static volatile boolean rendering = false;
 
     private static void summarizeBattle()
     {
@@ -63,29 +64,20 @@ public class ByzantineMain
         SimpleLogger.print("       " + numGeneralsInConsensus + "/" + (NUM_GENERALS - NUM_TRAITORS) + " loyal generals agreed on the same plan");
         SimpleLogger.print("\n");
     }
-    private static int inputValue(Scanner sc, int from, int to) {
-        int input;
-        input = sc.nextInt();
-
-        while (input < from || input > to) {
-            SimpleLogger.printSameLine("Invalid input. Try again: ");
-            input = sc.nextInt();
-        }
-        return input;
-    }
-    public static void Rendering(int generals,int traitors, int enc_level){
+    public static void Rendering(int generals, int traitors, int enc_level) {
         NUM_GENERALS = generals;
         NUM_TRAITORS = traitors;
         ENC_LEVEL = enc_level;
 
         CommandService.init(NUM_GENERALS, NUM_TRAITORS);
-
         CommandService.sendOriginMessages();
 
         Time.init();
-        Time.timeScale = 1f;
         double t_fps = 0;
-        while (CommandService.isRunning())
+
+        interrupted = false;
+        rendering = true;
+        while (CommandService.isRunning() && !interrupted)
         {
             try
             {
@@ -102,7 +94,7 @@ public class ByzantineMain
                 for (General general : CommandService.getGenerals()) {
                     general.update();
                 }
-                //System.out.println("LOGG Thread:" + Thread.currentThread().getId());
+
                 // update and render battle
                 frame.getBattlePanel().validate();
                 frame.getBattlePanel().repaint();
@@ -121,28 +113,19 @@ public class ByzantineMain
                 SimpleLogger.pressAnyKeyToContinue();
             }
         }
-        summarizeBattle();
 
+        if (!interrupted) {
+            summarizeBattle();
+        }
+
+        rendering = false;
     }
 
     public static void main(String[] args) 
     {
         try
         {
-//            Scanner sc = new Scanner(System.in);
-//
-//            SimpleLogger.printSameLine("Set number of generals " + "(" + MIN_GENERALS + "-" + MAX_GENERALS + "): ");
-//            NUM_GENERALS = inputValue(sc, MIN_GENERALS, MAX_GENERALS);
-//            SimpleLogger.printSameLine("Set number of traitors " + "(0-" + (NUM_GENERALS - 1) / 3 + "): ");
-//            NUM_TRAITORS = inputValue(sc, 0, (NUM_GENERALS - 1) / 3);
-//            SimpleLogger.printSameLine("Set encryption level " + "(" + MIN_ENCLEVEL + "-" + MAX_ENCLEVEL + "): ");
-//            ENC_LEVEL = inputValue(sc, MIN_ENCLEVEL, MAX_ENCLEVEL);
-//
-//
             frame = new FrameMain(SCREEN_SIZE_X, SCREEN_SIZE_Y);
-
-//
-//            sc.close();
         }
         catch (Exception e)
         {
@@ -165,6 +148,13 @@ public class ByzantineMain
         do {
             elapsed = System.nanoTime() - startTime;
         } while (elapsed < nanos);
+    }
+    public static synchronized void interruptRenderThread() {
+        interrupted = true;
+        CommandService.setIsRunning(false);
+    }
+    public static boolean isRendering() {
+        return rendering;
     }
 
     public static int getNumOfGenerals() {

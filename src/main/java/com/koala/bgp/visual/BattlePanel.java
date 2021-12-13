@@ -33,9 +33,8 @@ public class BattlePanel extends JPanel
         g2D.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
         RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-        //WARUNEK STARTU
-        //System.out.println("LOGG:" + CommandService.isRunning());
         if(CommandService.isRunning() ) {
+            
             // draw messangers
             ArrayList<Messenger> currentMessengers = new ArrayList<>(CommandService.getMessengers());
             for (Messenger messenger : currentMessengers) {
