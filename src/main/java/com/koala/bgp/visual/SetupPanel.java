@@ -260,6 +260,8 @@ public class SetupPanel extends JPanel
 
 
         });
+
+        
         startButton.addActionListener(e -> {
             int generalChoose = Integer.parseInt(generalListComboBox.getSelectedItem().toString());
             int traitorsChoose = Integer.parseInt(traitorsListComboBox.getSelectedItem().toString());
@@ -267,6 +269,8 @@ public class SetupPanel extends JPanel
 
             ByzantineMain.interruptRenderThread();
             while(ByzantineMain.isRendering());
+
+            BattlePanel.ResetTime();
 
             renderThread = new Thread(()->{
                 ByzantineMain.Rendering(generalChoose,traitorsChoose,levelChoose);

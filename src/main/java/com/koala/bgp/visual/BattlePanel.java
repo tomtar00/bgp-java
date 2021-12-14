@@ -15,7 +15,7 @@ public class BattlePanel extends JPanel
     private int PANEL_SIZE_Y;
 
     private Graphics2D g2D;
-    private double t = 0.0;
+    private static double t = 0.0;
 
     public BattlePanel(int PANEL_SIZE_Y) 
     {
@@ -23,6 +23,7 @@ public class BattlePanel extends JPanel
         this.setPreferredSize(new Dimension(PANEL_SIZE_X, PANEL_SIZE_Y));
         this.setBackground(Color.black); 
     }
+
     @Override
     public void paintComponent (Graphics g)
     {
@@ -74,5 +75,9 @@ public class BattlePanel extends JPanel
             g2D.setColor(Color.WHITE);
             g2D.drawString((int) (progress * 100) + "%", width - 32, PANEL_SIZE_Y - height - 5);
         }
+    }
+
+    public static void ResetTime() {
+        t = 0.0;
     }
 }
