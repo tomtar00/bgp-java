@@ -61,7 +61,8 @@ public class BattlePanel extends JPanel
             // draw boltzmann
             t += Time.getDeltaTime();
             double energy = CommandService.getSystemEnergy();
-            double boltz = Math.exp(-energy / t);
+            int currentRound = CommandService.getCurrentRound();
+            double boltz = Math.exp(-energy / (currentRound * t));
             int boltz_perc = (int) (boltz * 100);
             g2D.setColor(Color.WHITE);
             g2D.drawString("Boltzmann: " + boltz_perc + "%", 5, 105);

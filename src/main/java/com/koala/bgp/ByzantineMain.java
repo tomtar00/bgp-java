@@ -37,7 +37,7 @@ public class ByzantineMain
         SimpleLogger.print("---------- SUMMARY -----------");
 
         for (General general : CommandService.getGenerals()) {
-            general.makeDecision();
+            //general.makeDecision();
             try {
                 SimpleLogger.print(
                     String.format("%-50s", general.getName() + ": Decision - " + general.getDecision()) + 
@@ -51,9 +51,9 @@ public class ByzantineMain
 
         int numGeneralsInConsensus = 0;
         List<Decision> decisions = CommandService.getGenerals().stream().map(General::getDecision).collect(Collectors.toList());
-        Decision decision = Mathf.mostCommon(decisions);
+        var decision = Mathf.mostCommon(decisions);
         for (General general : CommandService.getGenerals())
-            if (general.getDecision().equals(decision) && !general.isTraitor())
+            if (general.getDecision().equals(decision.x) && !general.isTraitor())
                 numGeneralsInConsensus++;
 
         // if majority have the same decision
@@ -169,7 +169,16 @@ public class ByzantineMain
     public static int getTotalNumMessengers() {
         int numRounds = getNumOfTraitors() + 1;
         int numGen = getNumOfGenerals();
-        return numGen * (numGen - 1) * numRounds;
+        if (SetupPanel.getAlgorithm() == "Lamport") {
+            return numGen * (numGen - 1) * numRounds;
+        }
+        else if (SetupPanel.getAlgorithm() == "King") {
+            return numRounds * (numGen * numGen - 1);
+        }
+        else {
+            SimpleLogger.logWarning("Wrong algorithm specified!");
+            return 0;
+        }
     }
 }
 

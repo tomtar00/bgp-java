@@ -5,13 +5,12 @@ public class Time
     private static long lastTime;
     private static long frameTime;
 
-    public static float timeScale;
+    public static float timeScale = 1;
 
     public static void init()
     {
         lastTime = System.nanoTime();
         frameTime = 0;
-        timeScale = 1;  
     }
 
     public static void record()

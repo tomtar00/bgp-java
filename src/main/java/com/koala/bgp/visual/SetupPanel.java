@@ -10,7 +10,8 @@ public class SetupPanel extends JPanel
 {
     public final static int PANEL_SIZE_X = 300;
     private Thread renderThread;
-    public static String ChooseAlgorithm = "Random";
+    private static String genSystem = "Random";
+    private static String algorithm = "Lamport";
     public static boolean showDetails = false;
 
     public SetupPanel(int PANEL_SIZE_Y) 
@@ -34,7 +35,8 @@ public class SetupPanel extends JPanel
             int value = Integer.parseInt(generalListComboBox.getSelectedItem().toString());
             traitorsListComboBox.removeAllItems();
 
-            for (int i = 0; i <= (value - 1) / 3; i++) {
+            int maxTraitors = algorithm == "Lamport" ? (value - 1) / 3 : (value - 1) / 4;
+            for (int i = 0; i <= maxTraitors; i++) {
                 traitorsListComboBox.addItem(i);
             }
             traitorsListComboBox.setSelectedIndex(traitorsListComboBox.getItemCount()-1);
@@ -119,9 +121,21 @@ public class SetupPanel extends JPanel
         algorithmDropdownListComboBox.setMaximumSize(new Dimension(300, 25));
         ((JLabel)algorithmDropdownListComboBox.getRenderer()).setHorizontalAlignment(JLabel.RIGHT);
 
-        algorithmDropdownListComboBox.addItem("Standard algorithm");
-        algorithmDropdownListComboBox.addItem("King algorithm");
+        algorithmDropdownListComboBox.addItem("Lamport");
+        algorithmDropdownListComboBox.addItem("King");
 
+        algorithmDropdownListComboBox.addActionListener(e->{
+            algorithm = algorithmDropdownListComboBox.getSelectedItem().toString();
+
+            int value = Integer.parseInt(generalListComboBox.getSelectedItem().toString());
+            traitorsListComboBox.removeAllItems();
+
+            int maxTraitors = algorithm == "Lamport" ? (value - 1) / 3 : (value - 1) / 4;
+            for (int i = 0; i <= maxTraitors; i++) {
+                traitorsListComboBox.addItem(i);
+            }
+            traitorsListComboBox.setSelectedIndex(traitorsListComboBox.getItemCount()-1);
+        });
 
         JLabel algorithmDropdownInputLabel = new JLabel("Algorithm");
         algorithmDropdownInputLabel.setMinimumSize(new Dimension(300, 100));
@@ -153,7 +167,7 @@ public class SetupPanel extends JPanel
         generationSystemListComboBox.addItem("Circle");
 
         generationSystemListComboBox.addActionListener(e->{
-            ChooseAlgorithm = generationSystemListComboBox.getSelectedItem().toString();
+            genSystem = generationSystemListComboBox.getSelectedItem().toString();
         });
 
         JLabel generationSystemInputLabel = new JLabel("Generation System");
@@ -180,7 +194,10 @@ public class SetupPanel extends JPanel
         ((JLabel)timeScaleListComboBox.getRenderer()).setHorizontalAlignment(JLabel.RIGHT);
 
 
-        for (double i = 0.25; i <= 2; i+=0.25) {
+        for (double i = 0.25; i <= 1; i+=0.25) {
+            timeScaleListComboBox.addItem(i);
+        }
+        for (double i = 2; i <= 5; i+=1) {
             timeScaleListComboBox.addItem(i);
         }
         timeScaleListComboBox.addActionListener(e -> {
@@ -257,8 +274,6 @@ public class SetupPanel extends JPanel
                 Time.timeScale = Float.parseFloat(timeScaleListComboBox.getSelectedItem().toString());
                 pauseButton.setLabel("Pause");
             }
-
-
         });
 
         
@@ -294,7 +309,10 @@ public class SetupPanel extends JPanel
         });
     }
 
-    public String getChooseAlgorithm() {
-        return ChooseAlgorithm;
+    public static String getGenSystem() {
+        return genSystem;
+    }
+    public static String getAlgorithm() {
+        return algorithm;
     }
 }

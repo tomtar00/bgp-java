@@ -24,6 +24,8 @@ public class CommandService
     private static volatile int votes;
     private static volatile boolean ending = false;
 
+    private static General king = null;
+
     public static void init(int num_generals, int num_traitors) {
         ending = false;
         generals = Collections.synchronizedList(new ArrayList<>());
@@ -44,7 +46,7 @@ public class CommandService
                 int paddingBottom = 80;
                 Vector2 coords;
 
-                if (SetupPanel.ChooseAlgorithm == "Circle") {
+                if (SetupPanel.getGenSystem() == "Circle") {
                     //circle
                     double angle = i * 2 * Math.PI / num_generals;
                     int view_x = (BattlePanel.PANEL_SIZE_X - (paddingLeft + paddingRight));
@@ -66,7 +68,7 @@ public class CommandService
 
                 Boolean isTraitor = randomStack.pop();
                 String entityName = isTraitor ? "Traitor " : "General ";
-                CommandService.getGenerals().add(new General(entityName + i, coords, isTraitor));
+                CommandService.getGenerals().add(new General(entityName + i, coords, isTraitor, SetupPanel.getAlgorithm()));
             }
             catch (NoSuchAlgorithmException ex)
             {
@@ -92,6 +94,15 @@ public class CommandService
         }  
     }
 
+    public static void setKing(General _king) {
+        if (king != null) {
+            king.setKing(false);
+        }
+        king = _king;
+    }
+    public static General getKing() {
+        return king;
+    }
     public static List<General> getGenerals() { return generals; }
     public static List<Messenger> getMessengers() { return messengers; }
     public static boolean isRunning() { return isRunning; }
@@ -133,15 +144,23 @@ public class CommandService
 
     public static synchronized double getSystemEnergy() {
         List<Decision> decisions = CommandService.getGenerals().stream().filter(g -> !g.isTraitor()).map(General::getDecision).collect(Collectors.toList());
-        Decision mostCommon = Mathf.mostCommon(decisions);
+        var mostCommon = Mathf.mostCommon(decisions);
         float mostCommountCount = 0;
         float allCount = decisions.size();
         for (var decision : decisions) {
-            if (decision.equals(mostCommon)) {
+            if (decision.equals(mostCommon.x)) {
                 mostCommountCount++;
             }
         }
 
         return (allCount - mostCommountCount) / allCount;
+    }
+
+    public static synchronized int getCurrentRound() {
+        ArrayList<Integer> rounds = new ArrayList<>();
+        for (var general : generals) {
+            rounds.add(general.getCurrentRound());
+        }
+        return Mathf.mostCommon(rounds).x;
     }
 }

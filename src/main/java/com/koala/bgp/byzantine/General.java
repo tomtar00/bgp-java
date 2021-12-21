@@ -1,7 +1,6 @@
 package com.koala.bgp.byzantine;
 
 import java.security.NoSuchAlgorithmException;
-import java.util.List;
 import java.util.ArrayList;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -14,13 +13,22 @@ import com.koala.bgp.visual.SetupPanel;
 
 import java.awt.*;
 
-public class General extends BlockchainNode implements Drawable {
+public class General extends BlockchainNode implements Drawable 
+{
     private String name;
     private Decision decision;
     private Vector2 coords;
 
+    private String algorithm;
     private boolean traitor = false;
     private boolean voted = false;
+
+    // === KING
+    private boolean king = false;
+    private int numMajorityVotes = 0;
+    private int subRound = 1;
+    private final double KING_INTERVAL = 8;
+    // ===
 
     private final double SEND_MESSAGE_INTERVAL = .05;
     private BlockingQueue<MessageDto> messagesToSend;
@@ -30,11 +38,12 @@ public class General extends BlockchainNode implements Drawable {
 
     private int currentRound = 1;
 
-    public General(String name, Vector2 coords, boolean traitor) throws NoSuchAlgorithmException {
+    public General(String name, Vector2 coords, boolean traitor, String algorithm) throws NoSuchAlgorithmException {
         super(ByzantineMain.getEncLevel());
         this.name = name;
         this.coords = coords;
         this.traitor = traitor;
+        this.algorithm = algorithm;
 
         this.decision = Decision.randomDecision();
 
@@ -55,6 +64,17 @@ public class General extends BlockchainNode implements Drawable {
 
     public boolean isTraitor() {
         return this.traitor;
+    }
+
+    public int getCurrentRound() {
+        return this.currentRound;
+    }
+
+    public boolean isKing() {
+        return this.king;
+    }
+    public void setKing(boolean king) {
+        this.king = king;
     }
 
     @Override
@@ -86,6 +106,13 @@ public class General extends BlockchainNode implements Drawable {
                 pendingTransaction = msg;
                 blockchain.getPendingTransactions().add(pendingTransaction);
             }
+
+            if (algorithm == "King" && subRound == 2) {
+                // handle king message
+                if (numMajorityVotes <= ByzantineMain.getNumOfGenerals() / 2 + ByzantineMain.getNumOfTraitors()) {
+                    decision = ((Message)msg).getDecision();
+                }
+            }
         }
     }
 
@@ -99,10 +126,31 @@ public class General extends BlockchainNode implements Drawable {
                     // add block to the blockchain
                     super.processPendingTransactions(verify);
 
-                    // make decision based on majority of common decisions the latest block
-                    decision = makeDecision();
+                    if (algorithm == "Lamport") {
+                        // make decision based on majority of common decisions the latest block
+                        Mathf.Tuple<Decision, Integer> tuple = makeDecision();
+                        decision = tuple.x;
+                        numMajorityVotes = tuple.y;
+                    }
+                    else if (algorithm == "King") {
+                        if (subRound == 1) {
+                            Mathf.Tuple<Decision, Integer> tuple = makeDecision();
+                            decision = tuple.x;
+                            numMajorityVotes = tuple.y;
+                        }
+                    }
 
-                    currentRound++;
+                    if (algorithm == "Lamport") {
+                        currentRound++;
+                    }
+                    else if (algorithm == "King") {
+                        if (subRound == 1)
+                            subRound = 2;
+                        else if (subRound == 2) {
+                            subRound = 1;
+                            currentRound++;
+                        }
+                    }
 
                     if (currentRound > getNumOfRounds()) {
                         // end decision phase
@@ -112,7 +160,29 @@ public class General extends BlockchainNode implements Drawable {
                     } else {
                         // start next round
                         try {
-                            sendMyDecisionToAllGenerals(decision, currentRound);
+
+                            if (algorithm == "Lamport") {
+                                sendMyDecisionToAllGenerals(decision, currentRound);
+                            }
+                            else if (algorithm == "King") {
+                                if (subRound == 1) {
+                                    // first subround
+                                    sendMyDecisionToAllGenerals(decision, currentRound);
+                                }
+                                else if (subRound == 2) {
+                                    // second subround
+                                    this.setKing(currentRound - 1 == CommandService.getGenerals().indexOf(this));
+                                    if (this.isKing()) {
+                                        CommandService.setKing(this);
+                                        SimpleLogger.print("In round " + currentRound + " " + getName() + " is king");
+                                        sendMyDecisionToAllGenerals(decision, currentRound);
+                                    }
+                                }
+                            }
+                            else {
+                                SimpleLogger.logWarning("Wrong subround value on new (sub)round: " + subRound);
+                            }
+
                         } catch (NoSuchAlgorithmException e) {
                             e.printStackTrace();
                             SimpleLogger.pressAnyKeyToContinue();
@@ -127,22 +197,57 @@ public class General extends BlockchainNode implements Drawable {
         }
     }
 
-    private synchronized boolean shouldEndRound() {
+    private synchronized boolean shouldEndRound(double msgTimer) {
+
         int count = 0;
         for (Transaction<?> t : blockchain.getPendingTransactions()) {
             if (((Message)t).getRoundIndex() == currentRound) {
                 count++;
             }
         }
-        return count == ByzantineMain.getNumOfGenerals();
+
+        if (algorithm == "Lamport") {
+            return count == ByzantineMain.getNumOfGenerals();
+        }
+        else if (algorithm == "King") {
+            if (subRound == 1) {
+                return count == ByzantineMain.getNumOfGenerals();
+            }
+            else if (subRound == 2) {
+                if (!isKing())
+                    return count == 1 && CommandService.getKing() == null;
+                else {
+                    if (msgTimer > KING_INTERVAL) {
+                        CommandService.setKing(null);
+                        return true;
+                    }
+                    else return false;
+                }
+            }
+            else {
+                SimpleLogger.logWarning("Wrong subround value: " + subRound);
+                return true;
+            }
+        }
+        else {
+            return true;
+        }
     }
 
     private synchronized int getNumOfRounds() {
-        return ByzantineMain.getNumOfTraitors() + 1;
+        if (algorithm == "Lamport")
+            return ByzantineMain.getNumOfTraitors() + 1;
+        else if (algorithm == "King")
+            return ByzantineMain.getNumOfTraitors() + 1;
+        else {
+            SimpleLogger.logWarning("No algorithm specified!");
+            return 0;
+        }
     }
 
-    public synchronized Decision makeDecision() {
+    public synchronized Mathf.Tuple<Decision, Integer> makeDecision() {
         Decision decision;
+        int majority = 0;
         java.util.List<Decision> decisionList = new java.util.ArrayList<>();
         for (Transaction<?> t : blockchain.getLatestBlock().getTransactions()) {
             if (t != null)
@@ -153,9 +258,10 @@ public class General extends BlockchainNode implements Drawable {
             // make decision based on majority
             // if num of decisions is the same for multiple decisions
             // take the one with lowest index
-            List<Decision> mostCommons = Mathf.mostCommons(decisionList);
-            Decision mostCommonDecision = mostCommons.get(0);
-            for (var dec : mostCommons) {
+            var mostCommons = Mathf.mostCommons(decisionList);
+            majority = mostCommons.y;
+            Decision mostCommonDecision = mostCommons.x.get(0);
+            for (var dec : mostCommons.x) {
                 int ind1 = Decision.valueOf(dec.toString()).ordinal();
                 int ind2 = Decision.valueOf(mostCommonDecision.toString()).ordinal();
                 if (ind1 < ind2) {
@@ -171,7 +277,7 @@ public class General extends BlockchainNode implements Drawable {
         if (traitor) {
             decision = Decision.randomDecision(decision);
         }
-        return decision;
+        return new Mathf.Tuple<Decision, Integer>(decision, majority);
     }
 
     public synchronized void sendMyDecisionToAllGenerals(Decision decision, int currentRound) throws NoSuchAlgorithmException {
@@ -211,7 +317,7 @@ public class General extends BlockchainNode implements Drawable {
             sendMsgTimer = 0.0;
         }
 
-        if (!voted && shouldEndRound()) {
+        if (!voted && shouldEndRound(sendMsgTimer)) {
             processPendingTransactions((t) -> { return ((Message)t).getRoundIndex() == currentRound; });
         }
     }
@@ -230,9 +336,9 @@ public class General extends BlockchainNode implements Drawable {
 
     @Override
     public void draw(Graphics2D g2D) {
-        int sizeX = 30;
-        int sizeY = 30;
-        int thickness = 10;
+        int sizeX = isKing() ? 60 : 30;
+        int sizeY = isKing() ? 60 : 30;
+        int thickness = 7;
 
         int x = (int) (coords.getX() - sizeX / 2);
         int y = (int) (coords.getY() - sizeY / 2);
@@ -252,7 +358,7 @@ public class General extends BlockchainNode implements Drawable {
             if(SetupPanel.showDetails) {
                 // name
                 g2D.setPaint(traitor ? Color.RED : Color.WHITE);
-                g2D.drawString(getName(), x - 8, y - 8);
+                g2D.drawString(getName() + (isKing() ? "(KING)" : ""), x - 8, y - 8);
 
                 if (processingPendingTransactions)
                     g2D.drawString("Mining...", x - 8, y + 1.8f * sizeY);
