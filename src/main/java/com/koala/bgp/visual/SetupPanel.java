@@ -1,6 +1,7 @@
 package com.koala.bgp.visual;
 
 import com.koala.bgp.ByzantineMain;
+import com.koala.bgp.byzantine.Decision;
 import com.koala.bgp.utils.Time;
 
 import javax.swing.*;
@@ -14,6 +15,7 @@ public class SetupPanel extends JPanel
     private static String algorithm = "Lamport";
     public static boolean showDetails = false;
     private static int q = 1;
+    private static int numDecisions = 2;
 
     public SetupPanel(int PANEL_SIZE_Y) 
     {
@@ -97,6 +99,31 @@ public class SetupPanel extends JPanel
         encryptionLevelInputPanel.add(encryptionLevelInputListComboBox, BorderLayout.EAST);
         this.add(encryptionLevelInputPanel);
 
+        // ==============================Decisions=================================
+        JComboBox<Integer> decisionsComboBox = new JComboBox<Integer>();
+        decisionsComboBox.setMaximumSize(new Dimension(200, 25));
+        ((JLabel)decisionsComboBox.getRenderer()).setHorizontalAlignment(JLabel.RIGHT);
+
+        for (int i = 2; i <= Decision.values().length; i++) {
+            decisionsComboBox.addItem(i);
+        }
+
+        decisionsComboBox.addActionListener(e -> {
+            numDecisions = Integer.parseInt(decisionsComboBox.getSelectedItem().toString());
+        });
+
+        JLabel decisionsInputLabel = new JLabel("Number of decisions");
+        decisionsInputLabel.setMinimumSize(new Dimension(300, 100));
+
+        JPanel decisionsPanel = new JPanel();
+        BoxLayout decisionsInputLayout = new BoxLayout(decisionsPanel, BoxLayout.X_AXIS);
+        decisionsPanel.setLayout(decisionsInputLayout);
+        decisionsPanel.setMaximumSize(new Dimension(500, 60));
+        decisionsPanel.add(decisionsInputLabel, BorderLayout.WEST);
+        decisionsPanel.add(Box.createHorizontalStrut(10));
+        decisionsPanel.add(decisionsComboBox, BorderLayout.EAST);
+        this.add(decisionsPanel);
+
         // ==============================Algorithm=================================
         JComboBox<String> algorithmDropdownListComboBox = new JComboBox<String>();
         algorithmDropdownListComboBox.setMaximumSize(new Dimension(300, 25));
@@ -104,6 +131,7 @@ public class SetupPanel extends JPanel
 
         algorithmDropdownListComboBox.addItem("Lamport");
         algorithmDropdownListComboBox.addItem("King");
+        algorithmDropdownListComboBox.addItem("Voter");
         algorithmDropdownListComboBox.addItem("q-Voter");
 
         JPanel qPanel = new JPanel();
@@ -119,7 +147,7 @@ public class SetupPanel extends JPanel
             }
             traitorsListComboBox.setSelectedIndex(traitorsListComboBox.getItemCount()-1);
 
-            qPanel.setVisible(algorithm == "q-Voter");
+            qPanel.setVisible(algorithm == "Voter" || algorithm == "q-Voter");
         });
 
         JLabel algorithmDropdownInputLabel = new JLabel("Algorithm");
@@ -134,7 +162,7 @@ public class SetupPanel extends JPanel
         algorithmDropdownInputPanel.add(algorithmDropdownListComboBox, BorderLayout.EAST);
         this.add(algorithmDropdownInputPanel);
 
-        // ==============================q-Voter q number=================================
+        // ==============================Voter q number=================================
         JComboBox<Integer> qComboBox = new JComboBox<Integer>();
         qComboBox.setMaximumSize(new Dimension(400, 25));
         ((JLabel)qComboBox.getRenderer()).setHorizontalAlignment(JLabel.RIGHT);
@@ -304,5 +332,8 @@ public class SetupPanel extends JPanel
     }
     public static int getQ() {
         return q;
+    }
+    public static int getNumDecisions() {
+        return numDecisions;
     }
 }

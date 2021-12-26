@@ -31,7 +31,7 @@ public class General extends BlockchainNode implements Drawable
     private final double KING_INTERVAL = 8;
     // ===
 
-    // === q-VOTER
+    // === VOTER
     private General[] group;
     private Long[] responseTimes;
     // ===
@@ -51,7 +51,7 @@ public class General extends BlockchainNode implements Drawable
         this.traitor = traitor;
         this.algorithm = algorithm;
 
-        this.decision = Decision.randomDecision();
+        this.decision = Decision.randomDecision(SetupPanel.getNumDecisions());
         this.group = new General[SetupPanel.getQ()];
 
         this.messagesToSend = new ArrayBlockingQueue<MessageDto>(4096);
@@ -103,14 +103,14 @@ public class General extends BlockchainNode implements Drawable
 
     @Override
     public synchronized void onTransactionRecieved(Transaction<?> msg) throws NoSuchAlgorithmException {
-        if (voted && algorithm != "q-Voter")
+        if (voted && algorithm != "Voter" && algorithm != "q-Voter")
             return;
 
         if (transactionIsValid(msg) && !blockchain.contains(msg)) {
 
             Message recievedMsg = ((Message) msg);
 
-            if (algorithm != "q-Voter") {
+            if (algorithm != "Voter" && algorithm != "q-Voter") {
                 Transaction<?> pendingTransaction = blockchain.getPendingTransaction(msg);
                 if (pendingTransaction == null) {
                     // add new msg to queue (memPool)
@@ -138,11 +138,13 @@ public class General extends BlockchainNode implements Drawable
                     }
                 }
             }
-            else if (algorithm == "q-Voter") {
+            else if (algorithm == "Voter" || algorithm == "q-Voter") {
                 General sender = (General)CommandService.getNode(recievedMsg.getSenderPublicKey());
                 if (recievedMsg.getDecision() == null) {
                     // recieved request
                     // (resend message)
+                    if (traitor)
+                        decision = Decision.randomDecision(decision, SetupPanel.getNumDecisions());
                     var msgForTarget = new Message(decision, keyPair.getPublic(), sender.getKeyPair().getPublic());
                     msgForTarget.setRoundIndex(recievedMsg.getRoundIndex());
                     msgForTarget.signTransaction(keyPair);
@@ -152,14 +154,32 @@ public class General extends BlockchainNode implements Drawable
                     // recieved response
                     if (currentRound == 1) {
                         int gen_id = CommandService.getGenerals().indexOf(sender);
-                        if (responseTimes[gen_id] == null) {
-                            SimpleLogger.print(getName() + " --- " + sender.getName());
-                        }
-                        else
-                            responseTimes[gen_id] = System.currentTimeMillis() - responseTimes[gen_id];
+                        responseTimes[gen_id] = System.currentTimeMillis() - responseTimes[gen_id];
                     }
                     else {
-                        decision = recievedMsg.getDecision();
+                        if (algorithm == "Voter") {
+                            decision = recievedMsg.getDecision();
+                        }
+                        else {
+                            // q-Voter
+                            if (blockchain.getPendingTransactions().size() == group.length) {
+                                boolean allDecisionsAreSame = true;
+                                Decision neighborsDecision = null;
+                                for (var transaction : blockchain.getPendingTransactions()) {
+                                    Message _msg = (Message)transaction;
+                                    if (neighborsDecision == null)
+                                        neighborsDecision = _msg.getDecision();
+                                    else {
+                                        if (!_msg.getDecision().equals(neighborsDecision)) {
+                                            allDecisionsAreSame = false;
+                                        }
+                                    }
+                                }
+                                if (allDecisionsAreSame) {
+                                    decision = neighborsDecision;
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -189,9 +209,9 @@ public class General extends BlockchainNode implements Drawable
                             numMajorityVotes = tuple.y;
                         }
                     }
-                    else if (algorithm == "q-Voter") {
+                    else if (algorithm == "Voter" || algorithm == "q-Voter") {
                         if (currentRound == 1) {
-                            // wyznacz grupe q najblizszych wezlow
+                            // select q-sized group of the nearest neighbors
                             ArrayList<Integer> mins = new ArrayList<>();
                             for (int i = 0; i < group.length; i++) {
                                 int minIndex = (responseTimes[0] == null) ? 1 : 0;
@@ -223,7 +243,7 @@ public class General extends BlockchainNode implements Drawable
                             currentRound++;
                         }
                     }
-                    else if (algorithm == "q-Voter") {
+                    else if (algorithm == "Voter" || algorithm == "q-Voter") {
                         currentRound++;
                     }
 
@@ -254,7 +274,7 @@ public class General extends BlockchainNode implements Drawable
                                     }
                                 }
                             }
-                            else if (algorithm == "q-Voter") {
+                            else if (algorithm == "Voter") {
                                 // select random general from group
                                 Random rand = new Random();
                                 int ind = rand.nextInt(group.length);
@@ -264,6 +284,15 @@ public class General extends BlockchainNode implements Drawable
                                 msgForTarget.setRoundIndex(currentRound);
                                 msgForTarget.signTransaction(keyPair);
                                 messagesToSend.add(new MessageDto(msgForTarget, target));
+                            }
+                            else if (algorithm == "q-Voter") {
+                                for (var neighbor: group) {
+                                    // send neighbor decisin request 
+                                    var msgForNeighbor = new Message(null, keyPair.getPublic(), neighbor.getKeyPair().getPublic());
+                                    msgForNeighbor.setRoundIndex(currentRound);
+                                    msgForNeighbor.signTransaction(keyPair);
+                                    messagesToSend.add(new MessageDto(msgForNeighbor, neighbor));
+                                }
                             }
                             else {
                                 SimpleLogger.logWarning("Wrong subround value on new (sub)round: " + subRound);
@@ -315,11 +344,15 @@ public class General extends BlockchainNode implements Drawable
                 return true;
             }
         }
-        else if (algorithm == "q-Voter") {
+        else if (algorithm == "Voter" || algorithm == "q-Voter") {
             if (currentRound == 1)
                 return count == ByzantineMain.getNumOfGenerals() - 1;
-            else
-                return count == 1;
+            else {
+                if (algorithm == "Voter")
+                    return count == 1;
+                else
+                    return count == group.length;
+            }
             
         }
         else {
@@ -332,7 +365,7 @@ public class General extends BlockchainNode implements Drawable
             return ByzantineMain.getNumOfTraitors() + 1;
         else if (algorithm == "King")
             return ByzantineMain.getNumOfTraitors() + 1;
-        else if (algorithm == "q-Voter") {
+        else if (algorithm == "Voter" || algorithm == "q-Voter") {
             return ByzantineMain.getNumOfGenerals(); // TODO EDIT
         }
         else {
@@ -371,23 +404,23 @@ public class General extends BlockchainNode implements Drawable
         }
 
         if (traitor) {
-            decision = Decision.randomDecision(decision);
+            decision = Decision.randomDecision(decision, SetupPanel.getNumDecisions());
         }
         return new Mathf.Tuple<Decision, Integer>(decision, majority);
     }
 
     public synchronized void sendMyDecisionToAllGenerals(Decision decision, int currentRound) throws NoSuchAlgorithmException {
 
-        if (algorithm == "q-Voter") {
+        if (algorithm == "Voter" || algorithm == "q-Voter") {
             this.responseTimes = new Long[CommandService.getGenerals().size()];
         }
 
         // send my decision to every other general
         for (BlockchainNode general : getOtherNodes()) {
             if (traitor) {
-                decision = Decision.randomDecision(decision);
+                decision = Decision.randomDecision(decision, SetupPanel.getNumDecisions());
             }
-            if (algorithm == "q-Voter") {
+            if (algorithm == "Voter" || algorithm == "q-Voter") {
                 responseTimes[CommandService.getGenerals().indexOf((General)general)] = System.currentTimeMillis();
                 decision = null;
             }
@@ -399,7 +432,7 @@ public class General extends BlockchainNode implements Drawable
             messagesToSend.add(new MessageDto(msgForGeneral, general));
         }
 
-        if (algorithm != "q-Voter") {
+        if (algorithm != "Voter" || algorithm == "q-Voter") {
             // add your own decision
             Message msgToSelf = new Message(decision, keyPair.getPublic(), keyPair.getPublic());
             msgToSelf.setRoundIndex(currentRound);
@@ -425,7 +458,7 @@ public class General extends BlockchainNode implements Drawable
             sendMsgTimer = 0.0;
         }
 
-        if (algorithm == "q-Voter") {
+        if (algorithm == "Voter" || algorithm == "q-Voter") {
             if (shouldEndRound(sendMsgTimer)) {
                 processPendingTransactions((t) -> {
                     return ((Message) t).getRoundIndex() == currentRound;
@@ -461,29 +494,30 @@ public class General extends BlockchainNode implements Drawable
 
         int x = (int) (coords.getX() - sizeX / 2);
         int y = (int) (coords.getY() - sizeY / 2);
-   
+
         g2D.setStroke(new BasicStroke(thickness));
 
-            // general / traitor
-            if (traitor)
-                g2D.setPaint(Color.decode("#ff6e6e"));
-            else
-                g2D.setPaint(Color.decode("#49b2fc"));
-            g2D.fillOval(x, y, sizeX, sizeY);
+        // general / traitor
+        if (traitor)
+            g2D.setPaint(Color.decode("#ff6e6e"));
+        else
+            g2D.setPaint(Color.decode("#49b2fc"));
+        g2D.fillOval(x, y, sizeX, sizeY);
 
-                // outline (decision)
-                g2D.setPaint(Decision.getColor(getDecision()));
-                g2D.drawOval(x, y, sizeX, sizeY);
-            if(SetupPanel.showDetails) {
-                // name
-                g2D.setPaint(traitor ? Color.RED : Color.WHITE);
-                g2D.drawString(getName() + (isKing() ? "(KING)" : "") + " R:" + currentRound + " Pen:" + blockchain.getPendingTransactions().size(), x - 8, y - 8);
+        // outline (decision)
+        g2D.setPaint(Decision.getColor(getDecision()));
+        g2D.drawOval(x, y, sizeX, sizeY);
+        if (SetupPanel.showDetails) {
+            // name
+            g2D.setPaint(traitor ? Color.RED : Color.WHITE);
+            g2D.drawString(getName() + (isKing() ? "(KING)" : "") + " R:" + currentRound + " Pen:"
+                    + blockchain.getPendingTransactions().size(), x - 8, y - 8);
 
-                if (processingPendingTransactions)
-                    g2D.drawString("Mining...", x - 8, y + 1.8f * sizeY);
-                if (voted)
-                    g2D.drawString("End Sync", x - 8, y + 1.5f * sizeY);
-            }
+            if (processingPendingTransactions)
+                g2D.drawString("Mining...", x - 8, y + 1.8f * sizeY);
+            if (voted)
+                g2D.drawString("End Sync", x - 8, y + 1.5f * sizeY);
+        }
     }
 
     class MessageDto {

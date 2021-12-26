@@ -82,12 +82,12 @@ public class Messenger implements Drawable
         }
 
         // in seconds
-        float timeOffset = SetupPanel.getAlgorithm() == "q-Voter" ? 2f : rand.nextFloat() * 4f;
+        float timeOffset = SetupPanel.getAlgorithm() == "Voter" ? 2f : rand.nextFloat() * 4f;
         timeToDeliver = (float)dst / 100f + timeOffset;
     }
 
     private Message randomizeSpy(Message message) {
-        message = new Message(Decision.randomDecision(message.getDecision()),
+        message = new Message(Decision.randomDecision(message.getDecision(), SetupPanel.getNumDecisions()),
                               message.getSenderPublicKey(), 
                               message.getRecipientPublicKey()
                             );           
