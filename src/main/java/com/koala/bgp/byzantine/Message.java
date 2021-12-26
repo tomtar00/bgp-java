@@ -49,7 +49,7 @@ public class Message extends Transaction<Decision>
     @Override
     protected String calculateTransactionHash() {
         String dataToHash = 
-            data.toString()  
+            data != null ? data.toString() : "null" 
           + senderPublicKey 
           + recipientPublicKey;
 

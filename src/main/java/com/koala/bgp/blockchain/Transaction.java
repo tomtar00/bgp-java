@@ -90,10 +90,12 @@ public abstract class Transaction<T>
         if (o == this) { return true; }
          
         Transaction<?> c = (Transaction<?>) o;
+
+        boolean dataEquals = data == null ? c.getData() == null : data.equals(c.getData());
          
         return senderPublicKey.equals(c.getSenderPublicKey()) && 
                recipientPublicKey.equals(c.getRecipientPublicKey()) &&
-               data.equals(c.getData()) && 
+               dataEquals && 
                id == c.getId();
     }
 }

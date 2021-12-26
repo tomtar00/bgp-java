@@ -35,47 +35,82 @@ public class CommandService
 
         Stack<Boolean> randomStack = Mathf.randomBoolStack(0, num_generals, num_traitors);
 
-        // create generals and set their positions
-        for (int i = 0; i < num_generals; i++) 
-        {
-            try
-            {
-                int paddingLeft = 200;
-                int paddingRight = 50;
-                int paddingTop = 80;
-                int paddingBottom = 80;
-                Vector2 coords;
+        int paddingLeft = 200;
+        int paddingRight = 50;
+        int paddingTop = 80;
+        int paddingBottom = 80;
+        ArrayList<Vector2> gen_coords = new ArrayList<Vector2>();
 
-                if (SetupPanel.getGenSystem() == "Circle") {
-                    //circle
+        // create generals and set their positions
+        try {
+            Vector2 coords;
+            if (SetupPanel.getGenSystem() == "Circle") {
+
+                for (int i = 0; i < num_generals; i++) {
                     double angle = i * 2 * Math.PI / num_generals;
                     int view_x = (BattlePanel.PANEL_SIZE_X - (paddingLeft + paddingRight));
                     int view_y = (ByzantineMain.SCREEN_SIZE_Y - (paddingTop + paddingBottom));
                     int GENERAL_SPAWN_RADIUS = view_x > view_y ? view_y / 2 : view_x / 2;
-                    int x = (int)(Math.sin(angle) * GENERAL_SPAWN_RADIUS);
-                    int y = (int)(Math.cos(angle) * GENERAL_SPAWN_RADIUS);
+                    int x = (int) (Math.sin(angle) * GENERAL_SPAWN_RADIUS);
+                    int y = (int) (Math.cos(angle) * GENERAL_SPAWN_RADIUS);
                     int offsetX = paddingLeft + view_x / 2;
                     int offsetY = paddingTop + view_y / 2;
                     coords = new Vector2(x + offsetX, y + offsetY);
+
+                    gen_coords.add(coords);
                 }
-                else {
-                    // random
+
+            } else if (SetupPanel.getGenSystem() == "Random") {
+
+                for (int i = 0; i < num_generals; i++) {
                     Random rand = new Random();
                     int x = rand.nextInt(BattlePanel.PANEL_SIZE_X - (paddingLeft + paddingRight)) + paddingLeft;
                     int y = rand.nextInt(ByzantineMain.SCREEN_SIZE_Y - (paddingTop + paddingBottom)) + paddingTop;
                     coords = new Vector2(x, y);
+
+                    gen_coords.add(coords);
                 }
 
+            } else if (SetupPanel.getGenSystem() == "PoissonDisc") {
+
+                int num_created_points = 0;
+                double minDst = 35;
+                while (num_created_points < num_generals) {
+                    Random rand = new Random();
+                    int x = rand.nextInt(BattlePanel.PANEL_SIZE_X - (paddingLeft + paddingRight)) + paddingLeft;
+                    int y = rand.nextInt(ByzantineMain.SCREEN_SIZE_Y - (paddingTop + paddingBottom)) + paddingTop;
+                    coords = new Vector2(x, y);
+
+                    boolean too_close = false;
+                    for (var point : gen_coords) {
+                        double sqrDst = Math.pow((point.getX() - coords.getX()), 2) + Math.pow((point.getY() - coords.getY()), 2);
+                        if (sqrDst < minDst * minDst) {
+                            too_close = true;
+                            break;
+                        }
+                    }
+
+                    if (too_close)
+                        continue;
+
+                    gen_coords.add(coords);
+                    num_created_points++;
+                }
+
+            }
+
+            int i = 0;
+            for (var point : gen_coords) {
                 Boolean isTraitor = randomStack.pop();
                 String entityName = isTraitor ? "Traitor " : "General ";
-                CommandService.getGenerals().add(new General(entityName + i, coords, isTraitor, SetupPanel.getAlgorithm()));
+                CommandService.getGenerals().add(new General(entityName + i, point, isTraitor, SetupPanel.getAlgorithm()));
+                i++;
             }
-            catch (NoSuchAlgorithmException ex)
-            {
-                SimpleLogger.logWarning("Error creating General!");
-                ex.printStackTrace();
-                SimpleLogger.pressAnyKeyToContinue();
-            }
+            
+        } catch (NoSuchAlgorithmException ex) {
+            SimpleLogger.logWarning("Error creating Generals!");
+            ex.printStackTrace();
+            SimpleLogger.pressAnyKeyToContinue();
         }
     }
     public static void sendOriginMessages()

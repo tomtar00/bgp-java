@@ -8,6 +8,7 @@ import com.koala.bgp.utils.SimpleLogger;
 import com.koala.bgp.utils.Time;
 import com.koala.bgp.utils.Vector2;
 import com.koala.bgp.visual.Drawable;
+import com.koala.bgp.visual.SetupPanel;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
@@ -81,7 +82,8 @@ public class Messenger implements Drawable
         }
 
         // in seconds
-        timeToDeliver = (float)dst / 100f + rand.nextFloat() * 4;
+        float timeOffset = SetupPanel.getAlgorithm() == "q-Voter" ? 2f : rand.nextFloat() * 4f;
+        timeToDeliver = (float)dst / 100f + timeOffset;
     }
 
     private Message randomizeSpy(Message message) {

@@ -37,7 +37,6 @@ public class ByzantineMain
         SimpleLogger.print("---------- SUMMARY -----------");
 
         for (General general : CommandService.getGenerals()) {
-            //general.makeDecision();
             try {
                 SimpleLogger.print(
                     String.format("%-50s", general.getName() + ": Decision - " + general.getDecision()) + 
@@ -174,6 +173,10 @@ public class ByzantineMain
         }
         else if (SetupPanel.getAlgorithm() == "King") {
             return numRounds * (numGen * numGen - 1);
+        }
+        else if (SetupPanel.getAlgorithm() == "q-Voter") {
+                                                            // rounds
+            return 2 * numGen * (numGen - 1) + 2 * numGen * (numGen - 1); // TODO EDIT
         }
         else {
             SimpleLogger.logWarning("Wrong algorithm specified!");

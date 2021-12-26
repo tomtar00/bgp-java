@@ -71,7 +71,8 @@ public class Blockchain
         pendingTransactions.add(transaction);
     }
     public boolean contains(Transaction<?> transaction) {
-        for (Block b : blocks) {
+        ArrayList<Block> blocks_temp = new ArrayList<>(blocks);
+        for (Block b : blocks_temp) {
             for (Transaction<?> t : b.getTransactions()) {
                 if (t.equals(transaction)) {
                     return true;
