@@ -225,6 +225,9 @@ public class SetupPanel extends JPanel
         for (double i = 2; i <= 5; i+=1) {
             timeScaleListComboBox.addItem(i);
         }
+        for (double i = 10; i <= 50; i+=10) {
+            timeScaleListComboBox.addItem(i);
+        }
         timeScaleListComboBox.addActionListener(e -> {
             Time.timeScale = Float.parseFloat(timeScaleListComboBox.getSelectedItem().toString());
         });

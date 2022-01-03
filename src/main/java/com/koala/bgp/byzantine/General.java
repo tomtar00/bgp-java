@@ -178,6 +178,14 @@ public class General extends BlockchainNode implements Drawable
                                 if (allDecisionsAreSame) {
                                     decision = neighborsDecision;
                                 }
+                                else {
+                                    Random rand = new Random();
+                                    float prob = rand.nextFloat();
+                                    float prob_to_flip = .25f;
+                                    if (prob < prob_to_flip) {
+                                        decision = Decision.randomDecision(decision, SetupPanel.getNumDecisions());
+                                    }
+                                }
                             }
                         }
                     }
@@ -211,8 +219,9 @@ public class General extends BlockchainNode implements Drawable
                     }
                     else if (algorithm == "Voter" || algorithm == "q-Voter") {
                         if (currentRound == 1) {
+                            String log = getName() + " === ";
                             // select q-sized group of the nearest neighbors
-                            ArrayList<Integer> mins = new ArrayList<>();
+                            //ArrayList<Integer> mins = new ArrayList<>();
                             for (int i = 0; i < group.length; i++) {
                                 int minIndex = (responseTimes[0] == null) ? 1 : 0;
                                 for (int j = 0; j < responseTimes.length; j++) {
@@ -220,15 +229,18 @@ public class General extends BlockchainNode implements Drawable
                                     if (responseTimes[j] == null)
                                         continue;
 
-                                    if (responseTimes[j] < responseTimes[minIndex] && !mins.contains(j)) {
+                                    if (responseTimes[j] < responseTimes[minIndex] /* && !mins.contains(j) */) {
                                         minIndex = j;
                                     }
 
                                 }
 
-                                mins.add(minIndex);
+                                //mins.add(minIndex);
+                                responseTimes[minIndex] = null;
                                 group[i] = CommandService.getGenerals().get(minIndex);
+                                log += group[i].getName() + ", ";
                             }
+                            SimpleLogger.print(log);
                         }
                     }
 
