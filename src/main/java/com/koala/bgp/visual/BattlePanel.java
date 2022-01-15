@@ -67,6 +67,11 @@ public class BattlePanel extends JPanel
             g2D.setColor(Color.WHITE);
             g2D.drawString("Boltzmann: " + boltz_perc + "%", 5, 105);
 
+            // send boltzmann to generals
+            for (General general: CommandService.getGenerals()){
+                general.setBoltzmann_authority_percent(boltz);
+            }
+
             // draw progress bar
             int height = 20;
             float progress = (float) Messenger.getMessengersCount() / (float) ByzantineMain.getTotalNumMessengers();

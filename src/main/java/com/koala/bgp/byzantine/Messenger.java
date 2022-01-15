@@ -89,7 +89,8 @@ public class Messenger implements Drawable
     private Message randomizeSpy(Message message) {
         message = new Message(Decision.randomDecision(message.getDecision(), SetupPanel.getNumDecisions()),
                               message.getSenderPublicKey(), 
-                              message.getRecipientPublicKey()
+                              message.getRecipientPublicKey(),
+                              recipient.getBoltzmann_authority()
                             );           
         spy = true;
         return message;

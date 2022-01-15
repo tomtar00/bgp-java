@@ -39,6 +39,8 @@ public class General extends BlockchainNode implements Drawable
     private final double SEND_MESSAGE_INTERVAL = .05;
     private BlockingQueue<MessageDto> messagesToSend;
     private double sendMsgTimer = 0.0;
+    private int authority = 0;
+    private double boltzmann_authority = 0;
 
     // ====
 
@@ -55,6 +57,9 @@ public class General extends BlockchainNode implements Drawable
         this.group = new General[SetupPanel.getQ()];
 
         this.messagesToSend = new ArrayBlockingQueue<MessageDto>(4096);
+
+        this.authority = new Random().nextInt(5)+1;
+        this.boltzmann_authority = authority;
     }
 
     public String getName() {
@@ -82,6 +87,22 @@ public class General extends BlockchainNode implements Drawable
     }
     public void setKing(boolean king) {
         this.king = king;
+    }
+
+    public double getAuthority() {
+        return authority;
+    }
+
+    public void setAuthority(int authority) {
+        this.authority = authority;
+    }
+
+    public double getBoltzmann_authority() {
+        return boltzmann_authority;
+    }
+
+    public void setBoltzmann_authority_percent(double percent) {
+        this.boltzmann_authority = authority  - (authority*percent) + 1;
     }
 
     @Override
@@ -145,7 +166,7 @@ public class General extends BlockchainNode implements Drawable
                     // (resend message)
                     if (traitor)
                         decision = Decision.randomDecision(decision, SetupPanel.getNumDecisions());
-                    var msgForTarget = new Message(decision, keyPair.getPublic(), sender.getKeyPair().getPublic());
+                    var msgForTarget = new Message(decision, keyPair.getPublic(), sender.getKeyPair().getPublic(),boltzmann_authority);
                     msgForTarget.setRoundIndex(recievedMsg.getRoundIndex());
                     msgForTarget.signTransaction(keyPair);
                     messagesToSend.add(new MessageDto(msgForTarget, sender));
@@ -292,7 +313,7 @@ public class General extends BlockchainNode implements Drawable
                                 int ind = rand.nextInt(group.length);
                                 General target = group[ind];
                                 // and send him a decision request
-                                var msgForTarget = new Message(null, keyPair.getPublic(), target.getKeyPair().getPublic());
+                                var msgForTarget = new Message(null, keyPair.getPublic(), target.getKeyPair().getPublic(),boltzmann_authority);
                                 msgForTarget.setRoundIndex(currentRound);
                                 msgForTarget.signTransaction(keyPair);
                                 messagesToSend.add(new MessageDto(msgForTarget, target));
@@ -300,7 +321,7 @@ public class General extends BlockchainNode implements Drawable
                             else if (algorithm == "q-Voter") {
                                 for (var neighbor: group) {
                                     // send neighbor decisin request 
-                                    var msgForNeighbor = new Message(null, keyPair.getPublic(), neighbor.getKeyPair().getPublic());
+                                    var msgForNeighbor = new Message(null, keyPair.getPublic(), neighbor.getKeyPair().getPublic(),boltzmann_authority);
                                     msgForNeighbor.setRoundIndex(currentRound);
                                     msgForNeighbor.signTransaction(keyPair);
                                     messagesToSend.add(new MessageDto(msgForNeighbor, neighbor));
@@ -388,31 +409,68 @@ public class General extends BlockchainNode implements Drawable
 
     public synchronized Mathf.Tuple<Decision, Integer> makeDecision() {
         Decision decision;
+
+        // List of authority
+        java.util.List<java.lang.Double> authorityList = new  java.util.ArrayList<>();
+
         int majority = 0;
         java.util.List<Decision> decisionList = new java.util.ArrayList<>();
         for (Transaction<?> t : blockchain.getLatestBlock().getTransactions()) {
             if (t != null)
                 decisionList.add(((Message) t).getDecision());
+                authorityList.add(((Message) t).getGeneral_authority());
         }
 
-        if (decisionList.size() != 0) {
-            // make decision based on majority
-            // if num of decisions is the same for multiple decisions
-            // take the one with lowest index
-            var mostCommons = Mathf.mostCommons(decisionList);
-            majority = mostCommons.y;
-            Decision mostCommonDecision = mostCommons.x.get(0);
-            for (var dec : mostCommons.x) {
-                int ind1 = Decision.valueOf(dec.toString()).ordinal();
-                int ind2 = Decision.valueOf(mostCommonDecision.toString()).ordinal();
-                if (ind1 < ind2) {
-                    mostCommonDecision = dec;
+        if(false) { // Potential boltzmann enabler/disabler
+
+            if (decisionList.size() != 0) {
+                // make decision based on majority
+                // if num of decisions is the same for multiple decisions
+                // take the one with lowest index
+                var mostCommons = Mathf.mostCommons(decisionList);
+                majority = mostCommons.y;
+                Decision mostCommonDecision = mostCommons.x.get(0);
+                for (var dec : mostCommons.x) {
+                    int ind1 = Decision.valueOf(dec.toString()).ordinal();
+                    int ind2 = Decision.valueOf(mostCommonDecision.toString()).ordinal();
+                    if (ind1 < ind2) {
+                        mostCommonDecision = dec;
+                    }
                 }
+                decision = mostCommonDecision;
+            } else {
+                decision = getDecision();
             }
-            decision = mostCommonDecision;
-        }
-        else {
-            decision = getDecision();
+
+        }else{
+            if (decisionList.size() != 0){
+                // make decision based on majority of authorities
+                // if num of decisions is the same for multiple decisions
+                // take the one with lowest index
+                Decision[] decisions = Decision.values();
+                Decision majorDecision = decisions[0];
+                double majorDecisionValue = 0;
+
+                // Count authorities of decisions
+                for (Decision dec: decisions){
+                    double counter = 0;
+                    for(int i=0; i<decisionList.size(); i++){
+                        if (decisionList.get(i) == dec){
+                            counter += authorityList.get(i);
+                        }
+                    }
+                    System.out.println(getName() + " - " +  dec + ":" + counter);
+                    if(counter > majorDecisionValue){
+                        majorDecisionValue = counter;
+                        majorDecision = dec;
+                    }
+                }
+                System.out.println(getName() + " Final Decision - " +  majorDecision + ":" + majorDecisionValue);
+                decision = majorDecision;
+            } else {
+                decision = getDecision();
+            }
+
         }
 
         if (traitor) {
@@ -437,7 +495,7 @@ public class General extends BlockchainNode implements Drawable
                 decision = null;
             }
             Message msgForGeneral;
-            msgForGeneral = new Message(decision, keyPair.getPublic(), general.getKeyPair().getPublic());
+            msgForGeneral = new Message(decision, keyPair.getPublic(), general.getKeyPair().getPublic(),boltzmann_authority);
             msgForGeneral.setRoundIndex(currentRound);
             msgForGeneral.signTransaction(keyPair);
 
@@ -446,7 +504,7 @@ public class General extends BlockchainNode implements Drawable
 
         if (algorithm != "Voter" || algorithm == "q-Voter") {
             // add your own decision
-            Message msgToSelf = new Message(decision, keyPair.getPublic(), keyPair.getPublic());
+            Message msgToSelf = new Message(decision, keyPair.getPublic(), keyPair.getPublic(),boltzmann_authority);
             msgToSelf.setRoundIndex(currentRound);
             blockchain.getPendingTransactions().add(msgToSelf);
         }
@@ -523,7 +581,7 @@ public class General extends BlockchainNode implements Drawable
             // name
             g2D.setPaint(traitor ? Color.RED : Color.WHITE);
             g2D.drawString(getName() + (isKing() ? "(KING)" : "") + " R:" + currentRound + " Pen:"
-                    + blockchain.getPendingTransactions().size(), x - 8, y - 8);
+                    + blockchain.getPendingTransactions().size() + "Authority:" + authority, x - 8, y - 8);
 
             if (processingPendingTransactions)
                 g2D.drawString("Mining...", x - 8, y + 1.8f * sizeY);
