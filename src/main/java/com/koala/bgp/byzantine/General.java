@@ -240,7 +240,6 @@ public class General extends BlockchainNode implements Drawable
                     }
                     else if (algorithm == "Voter" || algorithm == "q-Voter") {
                         if (currentRound == 1) {
-                            String log = getName() + " === ";
                             // select q-sized group of the nearest neighbors
                             //ArrayList<Integer> mins = new ArrayList<>();
                             for (int i = 0; i < group.length; i++) {
@@ -250,18 +249,15 @@ public class General extends BlockchainNode implements Drawable
                                     if (responseTimes[j] == null)
                                         continue;
 
-                                    if (responseTimes[j] < responseTimes[minIndex] /* && !mins.contains(j) */) {
+                                    if (responseTimes[j] < responseTimes[minIndex]) {
                                         minIndex = j;
                                     }
 
                                 }
 
-                                //mins.add(minIndex);
                                 responseTimes[minIndex] = null;
                                 group[i] = CommandService.getGenerals().get(minIndex);
-                                log += group[i].getName() + ", ";
                             }
-                            SimpleLogger.print(log);
                         }
                     }
 
@@ -421,7 +417,8 @@ public class General extends BlockchainNode implements Drawable
                 authorityList.add(((Message) t).getGeneral_authority());
         }
 
-        if(false) { // Potential boltzmann enabler/disabler
+        boolean majority_based = false;
+        if(majority_based) { // Potential boltzmann enabler/disabler
 
             if (decisionList.size() != 0) {
                 // make decision based on majority
@@ -442,7 +439,8 @@ public class General extends BlockchainNode implements Drawable
                 decision = getDecision();
             }
 
-        }else{
+        }
+        else {
             if (decisionList.size() != 0){
                 // make decision based on majority of authorities
                 // if num of decisions is the same for multiple decisions
