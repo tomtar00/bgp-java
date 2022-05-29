@@ -155,7 +155,10 @@ public class General extends BlockchainNode implements Drawable
                 if (subRound == 2) {
                     // handle king message
                     if (numMajorityVotes <= ByzantineMain.getNumOfGenerals() / 2 + ByzantineMain.getNumOfTraitors()) {
-                        decision = recievedMsg.getDecision();
+                        if (!traitor)
+                            decision = recievedMsg.getDecision();
+                        else
+                            decision = Decision.randomDecision(recievedMsg.getDecision(), SetupPanel.getNumDecisions());
                     }
                 }
             }
@@ -395,7 +398,7 @@ public class General extends BlockchainNode implements Drawable
         else if (algorithm == "King")
             return ByzantineMain.getNumOfTraitors() + 1;
         else if (algorithm == "Voter" || algorithm == "q-Voter") {
-            return ByzantineMain.getNumOfGenerals(); // TODO EDIT
+            return ByzantineMain.getNumOfGenerals();
         }
         else {
             SimpleLogger.logWarning("No algorithm specified!");
@@ -417,8 +420,7 @@ public class General extends BlockchainNode implements Drawable
                 authorityList.add(((Message) t).getGeneral_authority());
         }
 
-        boolean majority_based = false;
-        if(majority_based) { // Potential boltzmann enabler/disabler
+        if(SetupPanel.getDecisionAlgorithm() == "Majority") {
 
             if (decisionList.size() != 0) {
                 // make decision based on majority

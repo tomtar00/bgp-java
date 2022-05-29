@@ -176,11 +176,11 @@ public class ByzantineMain
         }
         else if (SetupPanel.getAlgorithm() == "Voter") {
                                                             // rounds
-            return 2 * numGen * (numGen - 1) + 2 * numGen * (numGen - 1); // TODO EDIT
+            return 2 * numGen * (numGen - 1) + 2 * numGen * (numGen - 1);
         }
         else if (SetupPanel.getAlgorithm() == "q-Voter") {
                                                                                 // rounds
-            return 2 * numGen * (numGen - 1) + 2 * numGen * SetupPanel.getQ() * (numGen - 1); // TODO EDIT
+            return 2 * numGen * (numGen - 1) + 2 * numGen * SetupPanel.getQ() * (numGen - 1);
         }
         else {
             SimpleLogger.logWarning("Wrong algorithm specified!");

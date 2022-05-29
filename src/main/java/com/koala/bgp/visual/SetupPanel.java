@@ -13,6 +13,7 @@ public class SetupPanel extends JPanel
     private Thread renderThread;
     private static String genSystem = "PoissonDisc";
     private static String algorithm = "Lamport";
+    private static String decisionAlgorithm = "Majority";
     public static boolean showDetails = false;
     private static int q = 1;
     private static int numDecisions = 2;
@@ -78,26 +79,26 @@ public class SetupPanel extends JPanel
         traitorsPanel.add(traitorsListComboBox, BorderLayout.EAST);
         this.add(traitorsPanel);
 
-        // ==============================encryptionLevelInput=================================
-        JComboBox<Integer> encryptionLevelInputListComboBox = new JComboBox<Integer>();
-        encryptionLevelInputListComboBox.setMaximumSize(new Dimension(200, 25));
-        ((JLabel)encryptionLevelInputListComboBox.getRenderer()).setHorizontalAlignment(JLabel.RIGHT);
+        // // ==============================encryptionLevelInput=================================
+        // JComboBox<Integer> encryptionLevelInputListComboBox = new JComboBox<Integer>();
+        // encryptionLevelInputListComboBox.setMaximumSize(new Dimension(200, 25));
+        // ((JLabel)encryptionLevelInputListComboBox.getRenderer()).setHorizontalAlignment(JLabel.RIGHT);
 
-        for (int i = 1; i <= 5; i++) {
-            encryptionLevelInputListComboBox.addItem(i);
-        }
+        // for (int i = 1; i <= 5; i++) {
+        //     encryptionLevelInputListComboBox.addItem(i);
+        // }
 
-        JLabel encryptionLevelInputLabel = new JLabel("Encryption Level");
-        encryptionLevelInputLabel.setMinimumSize(new Dimension(300, 100));
+        // JLabel encryptionLevelInputLabel = new JLabel("Encryption Level");
+        // encryptionLevelInputLabel.setMinimumSize(new Dimension(300, 100));
 
-        JPanel encryptionLevelInputPanel = new JPanel();
-        BoxLayout encryptionLevelInputLayout = new BoxLayout(encryptionLevelInputPanel, BoxLayout.X_AXIS);
-        encryptionLevelInputPanel.setLayout(encryptionLevelInputLayout);
-        encryptionLevelInputPanel.setMaximumSize(new Dimension(500, 60));
-        encryptionLevelInputPanel.add(encryptionLevelInputLabel, BorderLayout.WEST);
-        encryptionLevelInputPanel.add(Box.createHorizontalStrut(10));
-        encryptionLevelInputPanel.add(encryptionLevelInputListComboBox, BorderLayout.EAST);
-        this.add(encryptionLevelInputPanel);
+        // JPanel encryptionLevelInputPanel = new JPanel();
+        // BoxLayout encryptionLevelInputLayout = new BoxLayout(encryptionLevelInputPanel, BoxLayout.X_AXIS);
+        // encryptionLevelInputPanel.setLayout(encryptionLevelInputLayout);
+        // encryptionLevelInputPanel.setMaximumSize(new Dimension(500, 60));
+        // encryptionLevelInputPanel.add(encryptionLevelInputLabel, BorderLayout.WEST);
+        // encryptionLevelInputPanel.add(Box.createHorizontalStrut(10));
+        // encryptionLevelInputPanel.add(encryptionLevelInputListComboBox, BorderLayout.EAST);
+        // this.add(encryptionLevelInputPanel);
 
         // ==============================Decisions=================================
         JComboBox<Integer> decisionsComboBox = new JComboBox<Integer>();
@@ -138,10 +139,25 @@ public class SetupPanel extends JPanel
         algorithmDropdownListComboBox.addActionListener(e->{
             algorithm = algorithmDropdownListComboBox.getSelectedItem().toString();
 
-            int value = Integer.parseInt(generalListComboBox.getSelectedItem().toString());
+            int numGenerals = Integer.parseInt(generalListComboBox.getSelectedItem().toString());
             traitorsListComboBox.removeAllItems();
 
-            int maxTraitors = algorithm == "Lamport" ? (value - 1) / 3 : (value - 1) / 4;
+            int maxTraitors = algorithm == "Lamport" ? (numGenerals - 1) / 3 : (numGenerals - 1) / 4;
+            switch(algorithm) {
+                case "Lamport":
+                    maxTraitors = (numGenerals - 1) / 3;
+                    break;
+                case "King":
+                    maxTraitors = (numGenerals - 1) / 4;
+                    break;
+                case "Voter":
+                    maxTraitors = numGenerals / 10;
+                    break;
+                case "q-Voter":
+                    maxTraitors = numGenerals / 10;
+                    break;
+            }
+
             for (int i = 0; i <= maxTraitors; i++) {
                 traitorsListComboBox.addItem(i);
             }
@@ -187,6 +203,29 @@ public class SetupPanel extends JPanel
         qPanel.setVisible(false);
         this.add(qPanel);
 
+        // ============================== Decision Algorithm =================================
+        JComboBox<String> decisionAlgorithmComboBox = new JComboBox<String>();
+        decisionAlgorithmComboBox.setMaximumSize(new Dimension(300, 25));
+        ((JLabel)decisionAlgorithmComboBox.getRenderer()).setHorizontalAlignment(JLabel.RIGHT);
+
+        decisionAlgorithmComboBox.addItem("Majority");
+        decisionAlgorithmComboBox.addItem("Boltzmann");
+
+        decisionAlgorithmComboBox.addActionListener(e -> {
+            decisionAlgorithm = decisionAlgorithmComboBox.getSelectedItem().toString();
+        });
+
+        JLabel decisionAlgorithmInputLabel = new JLabel("Decision algorithm");
+        decisionAlgorithmInputLabel.setMinimumSize(new Dimension(300, 100));
+
+        JPanel decisionAlgorithmInputPanel = new JPanel();
+        BoxLayout decisionAlgorithmInputLayout = new BoxLayout(decisionAlgorithmInputPanel, BoxLayout.X_AXIS);
+        decisionAlgorithmInputPanel.setLayout(decisionAlgorithmInputLayout);
+        decisionAlgorithmInputPanel.setMaximumSize(new Dimension(500, 60));
+        decisionAlgorithmInputPanel.add(decisionAlgorithmInputLabel, BorderLayout.WEST);
+        decisionAlgorithmInputPanel.add(Box.createHorizontalStrut(10));
+        decisionAlgorithmInputPanel.add(decisionAlgorithmComboBox, BorderLayout.EAST);
+        this.add(decisionAlgorithmInputPanel);
 
         // ==============================Generation system=================================
         JComboBox<String> generationSystemListComboBox = new JComboBox<String>();
@@ -298,7 +337,7 @@ public class SetupPanel extends JPanel
         startButton.addActionListener(e -> {
             int generalChoose = Integer.parseInt(generalListComboBox.getSelectedItem().toString());
             int traitorsChoose = Integer.parseInt(traitorsListComboBox.getSelectedItem().toString());
-            int levelChoose = Integer.parseInt(encryptionLevelInputListComboBox.getSelectedItem().toString());
+            int levelChoose = 1;//Integer.parseInt(encryptionLevelInputListComboBox.getSelectedItem().toString());
 
             ByzantineMain.interruptRenderThread();
             while(ByzantineMain.isRendering());
@@ -338,5 +377,8 @@ public class SetupPanel extends JPanel
     }
     public static int getNumDecisions() {
         return numDecisions;
+    }
+    public static String getDecisionAlgorithm() {
+        return decisionAlgorithm;
     }
 }
