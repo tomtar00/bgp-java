@@ -370,7 +370,7 @@ public class General extends BlockchainNode implements Drawable
         else if (algorithm == "King")
             return ByzantineMain.getNumOfTraitors() + 1;
         else if (algorithm == "Voter" || algorithm == "q-Voter") {
-            return ByzantineMain.getNumOfGenerals(); // TODO EDIT
+            return ByzantineMain.getNumOfGenerals();
         }
         else {
             SimpleLogger.logWarning("No algorithm specified!");
